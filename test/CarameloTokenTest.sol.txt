@@ -1,0 +1,596 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {Test} from 'forge-std/Test.sol';
+import {console} from 'forge-std/console.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {Caramelo} from '../contracts/Caramelo.sol';
+import {IUniswapV2Router02, IUniswapV2Factory} from '../contracts/interfaces/UniswapV2Interfaces.sol';
+
+/** 
+ @dev _maxTxAmount - liberar para certos address
+ @dev mudar decimals pra 9
+ */
+
+contract CarameloTokenTest is Test {
+    Caramelo public caramelo;
+    address public owner;
+    uint256 private ownerPrivateKey;
+
+    address public userA;
+    uint256 private userAPrivateKey;
+
+    address public userB;
+    uint256 private userBPrivateKey;
+
+    // PancakeSwap Router e Factory na BSC
+    address public routerAddress = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
+    address public WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+
+    function setUp() public {
+        // Configurando o fork corretamente
+        vm.createSelectFork('https://bsc-dataseed.binance.org/');
+
+        // Criando o owner e iniciando seu contexto como `msg.sender`
+        (owner, ownerPrivateKey) = makeAddrAndKey('owner');
+        (userA, userAPrivateKey) = makeAddrAndKey('userA');
+        (userB, userBPrivateKey) = makeAddrAndKey('userB');
+
+        vm.startPrank(owner); // Inicia como owner para chamadas futuras serem válidas
+        caramelo = new Caramelo();
+        caramelo.initialize(
+            owner, // Proprietário inicial
+            5, // Taxa de redistribuição (5%)
+            5, // Taxa de liquidez (5%)
+            3, // Taxa de queima (3%)
+            1000000 * 10 ** caramelo.decimals(), // Quantidade máxima por transação
+            100 * 10 ** caramelo.decimals(), // Tokens para adicionar à liquidez
+            routerAddress // Endereço do router
+        );
+
+        // Mintando tokens para o owner
+        // caramelo.mint(owner, 10000 * 10 ** caramelo.decimals());
+
+        vm.stopPrank(); // Finalizando o contexto do owner
+    }
+
+    function testBuyTokensWithPreciseFee() public {
+        console.log(
+            'Simulando compra de tokens Caramelo com calc de taxas e queima...'
+        );
+
+        uint256 liquidityTokenAmount = 100 * 10 ** caramelo.decimals();
+        uint256 liquidityEthAmount = 1 ether;
+        uint256 buyEthAmount = 0.01 ether;
+
+        addLiquidityHelper(liquidityTokenAmount, liquidityEthAmount);
+
+        address buyer;
+        uint256 buyerPrivateKey;
+        (buyer, buyerPrivateKey) = makeAddrAndKey('buyer');
+
+        // Fornecer ETH para o comprador
+        vm.deal(buyer, buyEthAmount);
+
+        // Capturar estados iniciais
+        uint256 initialBuyerBalance = caramelo.balanceOf(buyer);
+        uint256 initialContractBalance = caramelo.balanceOf(address(caramelo));
+        uint256 initialTotalSupply = caramelo.totalSupply();
+
+        console.log('Saldo inicial no contrato:', initialContractBalance);
+        console.log('Total supply inicial:', initialTotalSupply);
+
+        // Realizar compra
+        vm.startPrank(buyer);
+        address[] memory path = new address[](2);
+        path[0] = WBNB;
+        path[1] = address(caramelo);
+
+        console.log('Comprando tokens...');
+        IUniswapV2Router02(routerAddress)
+            .swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: buyEthAmount
+        }(0, path, buyer, block.timestamp + 300);
+        vm.stopPrank();
+
+        // Capturar estados finais
+        uint256 finalBuyerBalance = caramelo.balanceOf(buyer);
+        uint256 tokensReceived = finalBuyerBalance - initialBuyerBalance;
+
+        console.log('Tokens recebidos pelo comprador:', tokensReceived);
+
+        // Cálculo das taxas e queima
+        uint256 expectedTax = (tokensReceived * caramelo.taxFee()) / 100;
+        uint256 expectedBurn = (expectedTax * caramelo.BURN_PERCENTAGE()) / 100;
+        uint256 expectedLiquidityFee = (tokensReceived *
+            caramelo.liquidityFee()) / 100;
+        uint256 totalExpectedFee = expectedTax +
+            expectedLiquidityFee -
+            expectedBurn;
+
+        console.log('Taxa esperada acumulada no contrato:', totalExpectedFee);
+        console.log('Tokens esperados queimados:', expectedBurn);
+
+        console.log('Total supply final apos queima:', caramelo.totalSupply());
+    }
+
+    function testPairCreation() public view {
+        console.log('Verificando criacao do par na PancakeSwap...');
+
+        address pair = caramelo.uniswapV2Pair();
+        console.log('address do par:', pair);
+
+        // not zeroAddress
+        require(pair != address(0), 'Par nao foi criado!');
+
+        // Obter o endereço da Factory a partir do Router
+        address factoryAddress = IUniswapV2Router02(routerAddress).factory();
+
+        // Check if the pair contains the expected tokens
+        address expectedPair = IUniswapV2Factory(factoryAddress).getPair(
+            address(caramelo),
+            WBNB
+        );
+        console.log('Par retornado pela Factory:', expectedPair);
+
+        require(
+            expectedPair == pair,
+            'Par nao corresponde aos tokens esperados!'
+        );
+
+        console.log('Par criado com sucesso:', pair);
+    }
+
+    function testAddLiquidity() public {
+        console.log('Adicionando liquidez ao par criado...');
+
+        uint256 tokenAmount = 1000 ether; // Quantidade de tokens CARAMELO
+        uint256 ethAmount = 10 ether; // Quantidade de WBNB
+
+        // Deal ETH (WBNB) para o owner
+        vm.deal(owner, ethAmount);
+        console.log('ETH fornecido para o owner:', ethAmount);
+
+        // Aprovar os tokens para o Router
+        vm.startPrank(owner);
+        caramelo.approve(routerAddress, tokenAmount);
+        uint256 allowance = caramelo.allowance(owner, routerAddress);
+        console.log('Allowance de Caramelo para o Router:', allowance);
+
+        require(
+            allowance >= tokenAmount,
+            'Aprovacao insuficiente para o Router'
+        );
+        vm.stopPrank();
+
+        // Capturar saldos iniciais
+        uint256 initialTokenBalance = caramelo.balanceOf(owner);
+        uint256 initialETHBalance = owner.balance;
+        console.log('Saldo inicial de tokens Caramelo:', initialTokenBalance);
+        console.log('Saldo inicial de ETH:', initialETHBalance);
+
+        // Adicionar liquidez
+        vm.startPrank(owner);
+        IUniswapV2Router02(routerAddress).addLiquidityETH{value: ethAmount}(
+            address(caramelo),
+            tokenAmount,
+            tokenAmount, // Min tokens
+            ethAmount, // Min ETH
+            owner,
+            block.timestamp + 300
+        );
+        vm.stopPrank();
+
+        // Capturar saldos após a operação
+        uint256 finalTokenBalance = caramelo.balanceOf(owner);
+        uint256 finalETHBalance = owner.balance;
+
+        console.log('Saldo final de tokens Caramelo:', finalTokenBalance);
+        console.log('Saldo final de ETH:', finalETHBalance);
+
+        // Verificar saldo de tokens LP
+        address pair = caramelo.uniswapV2Pair();
+        uint256 lpBalance = IERC20(pair).balanceOf(owner);
+        console.log('Saldo de tokens LP:', lpBalance);
+
+        require(lpBalance > 0, 'Liquidez nao foi adicionada com sucesso!');
+        require(
+            finalTokenBalance < initialTokenBalance,
+            'Tokens Caramelo nao foram usados corretamente'
+        );
+        require(
+            finalETHBalance < initialETHBalance,
+            'ETH nao foi usado corretamente'
+        );
+
+        // Verificar se o contrato Caramelo detém algum saldo residual
+        uint256 contractTokenBalance = caramelo.balanceOf(address(this));
+        console.log(
+            'Saldo de tokens Caramelo no contrato:',
+            contractTokenBalance
+        );
+        require(
+            contractTokenBalance == 0,
+            'O contrato possui saldo residual de tokens Caramelo'
+        );
+
+        console.log('Liquidez adicionada com sucesso!');
+    }
+
+    function testTokenSwapToETH() public {
+        console.log('Testando swap de tokens (Caramelo -> WBNB)...');
+
+        uint256 liquidityTokenAmount = 1000 ether; // Quantidade de tokens CARAMELO para liquidez
+        uint256 liquidityEthAmount = 10 ether; // Quantidade de WBNB para liquidez
+        uint256 swapTokenAmount = 500 ether; // Quantidade de tokens CARAMELO para o swap
+
+        // Adicionar liquidez usando a função auxiliar
+        addLiquidityHelper(liquidityTokenAmount, liquidityEthAmount);
+
+        // Aprovar o Router para realizar o swap
+        vm.startPrank(owner);
+        caramelo.approve(routerAddress, swapTokenAmount);
+        uint256 allowance = caramelo.allowance(owner, routerAddress);
+        console.log('Allowance para o swap:', allowance);
+        require(
+            allowance >= swapTokenAmount,
+            'Aprovacao insuficiente para o swap'
+        );
+
+        // Capturar saldo inicial de ETH
+        uint256 initialETHBalance = owner.balance;
+        console.log('Saldo inicial de ETH:', initialETHBalance);
+
+        // Realizar o swap
+        address[] memory path = new address[](2);
+        path[0] = address(caramelo);
+        path[1] = WBNB;
+
+        IUniswapV2Router02(routerAddress)
+            .swapExactTokensForETHSupportingFeeOnTransferTokens(
+                swapTokenAmount,
+                0, // Minimum ETH amount to accept
+                path,
+                owner,
+                block.timestamp + 300
+            );
+        vm.stopPrank();
+
+        // Capturar saldo final de ETH
+        uint256 finalETHBalance = owner.balance;
+        console.log('Saldo final de ETH:', finalETHBalance);
+
+        // Verificações
+        require(
+            finalETHBalance > initialETHBalance,
+            'Swap nao aumentou saldo de ETH!'
+        );
+
+        console.log('Swap de tokens (Caramelo -> WBNB) testado com sucesso!');
+    }
+
+    function testBuyCarameloWithETH() public {
+        console.log('Simulando compra de tokens Caramelo na PancakeSwap...');
+
+        uint256 liquidityTokenAmount = 5000 ether;
+        uint256 liquidityEthAmount = 10 ether;
+
+        addLiquidityHelper(liquidityTokenAmount, liquidityEthAmount);
+
+        address buyer;
+        uint256 buyerPrivateKey;
+        uint256 buyEthAmount = 1 ether;
+
+        (buyer, buyerPrivateKey) = makeAddrAndKey('buyer');
+
+        vm.deal(buyer, buyEthAmount);
+        console.log('BNB fornecido para o comprador:', buyEthAmount);
+
+        // Capturar saldo inicial de Caramelo e ETH do comprador
+        uint256 initialBuyerETHBalance = buyer.balance;
+        uint256 initialBuyerCarameloBalance = caramelo.balanceOf(buyer);
+        console.log(
+            'Saldo inicial de ETH do comprador:',
+            initialBuyerETHBalance
+        );
+        console.log(
+            'Saldo inicial de Caramelo do comprador:',
+            initialBuyerCarameloBalance
+        );
+
+        // Realizar a compra de tokens Caramelo
+        vm.startPrank(buyer);
+        address[] memory path = new address[](2);
+        path[0] = WBNB;
+        path[1] = address(caramelo);
+
+        IUniswapV2Router02(routerAddress)
+            .swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: buyEthAmount
+        }(
+            0, // Minimum token amount to accept
+            path,
+            buyer,
+            block.timestamp + 300
+        );
+        vm.stopPrank();
+
+        // Capturar saldo final de Caramelo e ETH do comprador
+        uint256 finalBuyerETHBalance = buyer.balance;
+        uint256 finalBuyerCarameloBalance = caramelo.balanceOf(buyer);
+        console.log('Saldo final de ETH do comprador:', finalBuyerETHBalance);
+        console.log(
+            'Saldo final de Caramelo do comprador:',
+            finalBuyerCarameloBalance
+        );
+
+        // Verificações
+        require(
+            finalBuyerCarameloBalance > initialBuyerCarameloBalance,
+            'Compra nao aumentou saldo de Caramelo!'
+        );
+        require(
+            finalBuyerETHBalance < initialBuyerETHBalance,
+            'Compra nao reduziu saldo de ETH!'
+        );
+
+        console.log(
+            'Compra de tokens Caramelo na PancakeSwap testada com sucesso!'
+        );
+    }
+
+    function testRemoveLiquidity() public {
+        console.log('Testando remocao de liquidez da PancakeSwap...');
+
+        uint256 liquidityTokenAmount = 5000 ether; // Quantidade de tokens para liquidez
+        uint256 liquidityEthAmount = 10 ether; // Quantidade de WBNB para liquidez
+
+        // Adicionar liquidez usando a função auxiliar
+        addLiquidityHelper(liquidityTokenAmount, liquidityEthAmount);
+
+        // Capturar saldo inicial de LP tokens do owner
+        address pair = caramelo.uniswapV2Pair();
+        uint256 initialLpBalance = IERC20(pair).balanceOf(owner);
+        console.log('Saldo inicial de tokens LP:', initialLpBalance);
+
+        require(
+            initialLpBalance > 0,
+            'Saldo inicial de LP tokens deve ser maior que 0!'
+        );
+
+        // Aprovar a remoção de liquidez
+        vm.startPrank(owner);
+        IERC20(pair).approve(routerAddress, initialLpBalance);
+        uint256 allowance = IERC20(pair).allowance(owner, routerAddress);
+        console.log('Allowance para remocao de liquidez:', allowance);
+        require(
+            allowance >= initialLpBalance,
+            'Aprovacao insuficiente para remocao de liquidez!'
+        );
+        vm.stopPrank();
+
+        // Capturar saldos iniciais de tokens e ETH
+        uint256 initialTokenBalance = caramelo.balanceOf(owner);
+        uint256 initialEthBalance = owner.balance;
+        console.log('Saldo inicial de tokens Caramelo:', initialTokenBalance);
+        console.log('Saldo inicial de ETH:', initialEthBalance);
+
+        // Remover liquidez
+        vm.startPrank(owner);
+        IUniswapV2Router02(routerAddress).removeLiquidityETH(
+            address(caramelo),
+            initialLpBalance, // Quantidade de LP tokens a remover
+            0, // Minimo de tokens Caramelo a receber
+            0, // Minimo de ETH a receber
+            owner,
+            block.timestamp + 300
+        );
+        vm.stopPrank();
+
+        // Capturar saldos finais de tokens e ETH
+        uint256 finalTokenBalance = caramelo.balanceOf(owner);
+        uint256 finalEthBalance = owner.balance;
+        console.log('Saldo final de tokens Caramelo:', finalTokenBalance);
+        console.log('Saldo final de ETH:', finalEthBalance);
+
+        // Verificar saldo final de LP tokens
+        uint256 finalLpBalance = IERC20(pair).balanceOf(owner);
+        console.log('Saldo final de tokens LP:', finalLpBalance);
+
+        // Verificações
+        require(finalLpBalance == 0, 'Saldo de LP tokens nao foi zerado!');
+        require(
+            finalTokenBalance > initialTokenBalance,
+            'Tokens Caramelo nao foram resgatados corretamente!'
+        );
+        require(
+            finalEthBalance > initialEthBalance,
+            'ETH nao foi resgatado corretamente!'
+        );
+
+        console.log('Remocao de liquidez da PancakeSwap testada com sucesso!');
+    }
+
+    function testFeesDistributionExcludingOwner() public {
+        console.log('Testando distribuicao de taxas com owner isento...');
+
+        uint256 liquidityTokenAmount = 5000 ether; // Tokens para adicionar liquidez
+        uint256 liquidityEthAmount = 10 ether; // WBNB para liquidez
+        uint256 transferAmount = 1000 ether; // Valor a ser transferido para validação das taxas
+
+        // Adicionar liquidez usando a função auxiliar
+        addLiquidityHelper(liquidityTokenAmount, liquidityEthAmount);
+
+        // Criar um endereço de destinatário
+        address recipient;
+        uint256 recipientPrivateKey;
+        (recipient, recipientPrivateKey) = makeAddrAndKey('recipient');
+
+        // Capturar saldos iniciais do contrato e do destinatário
+        uint256 initialContractBalance = caramelo.balanceOf(address(this));
+        uint256 initialRecipientBalance = caramelo.balanceOf(recipient);
+        console.log(
+            'Saldo inicial do contrato (tax + liquidez):',
+            initialContractBalance
+        );
+        console.log('Saldo inicial do destinatario:', initialRecipientBalance);
+
+        // Transferir tokens do owner para o destinatário
+        vm.startPrank(owner);
+        caramelo.transfer(recipient, transferAmount);
+        vm.stopPrank();
+
+        // Capturar saldos finais do contrato e do destinatário
+        uint256 finalContractBalance = caramelo.balanceOf(address(this));
+        uint256 finalRecipientBalance = caramelo.balanceOf(recipient);
+        console.log(
+            'Saldo final do contrato (tax + liquidez):',
+            finalContractBalance
+        );
+        console.log('Saldo final do destinatario:', finalRecipientBalance);
+
+        // Como o owner é isento, nao deve haver taxas aplicadas
+        require(
+            finalContractBalance == initialContractBalance,
+            'Saldo do contrato alterado indevidamente!'
+        );
+        require(
+            finalRecipientBalance == initialRecipientBalance + transferAmount,
+            'Destinatario nao recebeu o valor correto!'
+        );
+
+        console.log(
+            'Distribuicao de taxas com owner isento testada com sucesso!'
+        );
+    }
+
+    function testBurnWithZeroAmount() public {
+        vm.startPrank(owner);
+
+        // Excluir taxas para evitar interações desnecessárias
+        caramelo.excludeFromFee(owner);
+
+        // Verificar comportamento ao tentar queimar zero tokens
+        uint256 initialSupply = caramelo.totalSupply();
+        vm.expectRevert('Burn amount must be greater than zero');
+        caramelo.burn(0);
+
+        // Verificar que supply não foi alterado
+        assertEq(caramelo.totalSupply(), initialSupply);
+
+        vm.stopPrank();
+    }
+
+    function testTransferWithFees() public {
+        uint256 tokenValue = 100 * 10 ** caramelo.decimals(); // 100 tokens
+
+        // Configurar o teste
+        vm.startPrank(owner);
+        caramelo.mint(owner, tokenValue);
+        caramelo.transfer(userA, tokenValue);
+        vm.stopPrank();
+
+        // Realizar a transferência de userA para userB
+        vm.startPrank(userA);
+        caramelo.transfer(userB, 50 * 10 ** caramelo.decimals()); // Transferir 50 tokens
+        vm.stopPrank();
+
+        // Validar estados finais
+        uint256 totalBurned = caramelo.totalBurned();
+        uint256 totalTaxesCollected = caramelo.totalTaxesCollected();
+        uint256 totalLiquidityCollected = caramelo.totalLiquidityCollected();
+        uint256 userABalance = caramelo.balanceOf(userA);
+        uint256 userBBalance = caramelo.balanceOf(userB);
+
+        // Exibir informações no console
+        console.log('Total burned:', totalBurned);
+        console.log('Total taxes collected:', totalTaxesCollected);
+        console.log('Total liquidity collected:', totalLiquidityCollected);
+        console.log('User A Balance after transfer:', userABalance);
+        console.log('User B Balance after transfer:', userBBalance);
+
+        // Assertivas
+        assertEq(
+            userBBalance,
+            50 * 10 ** caramelo.decimals(),
+            'UserB should receive full 50 tokens'
+        );
+        assertEq(totalBurned, 1500000000000000000, 'Total burned mismatch');
+        assertEq(
+            totalTaxesCollected,
+            2500000000000000000,
+            'Total taxes collected mismatch'
+        );
+        assertEq(
+            totalLiquidityCollected,
+            2500000000000000000,
+            'Total liquidity collected mismatch'
+        );
+        assertEq(userABalance, 43_500 * 10 ** 15, 'User A balance mismatch'); // 50 - (burn + tax + liquidity)
+    }
+
+    function testTaxDistribution() external {
+        address fictUserA;
+        uint256 privateKeyFictUserA;
+
+        address fictUserB;
+        uint256 privateKeyFictUserB;
+
+        address fictUserC;
+        uint256 privateKeyFictUserC;
+
+        uint256 transferAmount = 100 * 10 ** caramelo.decimals(); // 100 tokens
+
+        (fictUserA, privateKeyFictUserA) = makeAddrAndKey('fictUserA');
+        (fictUserB, privateKeyFictUserB) = makeAddrAndKey('fictUserB');
+        (fictUserC, privateKeyFictUserC) = makeAddrAndKey('fictUserC');
+
+        vm.startPrank(owner);
+        caramelo.mint(owner, transferAmount * 3);
+        caramelo.transfer(fictUserA, transferAmount);
+        vm.stopPrank();
+
+        // Transfers with feesclear
+        console.log('fictUserA balance:', caramelo.balanceOf(fictUserA));
+       
+        vm.startPrank(fictUserA);
+        caramelo.transfer(fictUserB, 50 * 10 ** caramelo.decimals());
+        vm.stopPrank();
+
+        console.log('fictUserB balance:', caramelo.balanceOf(fictUserB));
+        console.log('fictUserC balance:', caramelo.balanceOf(fictUserC));
+
+        console.log('totalSupply:', caramelo.totalSupply());
+    }
+    function addLiquidityHelper(
+        uint256 tokenAmount,
+        uint256 ethAmount
+    ) internal {
+        vm.deal(owner, ethAmount);
+
+        vm.startPrank(owner);
+        caramelo.approve(routerAddress, tokenAmount);
+        uint256 allowance = caramelo.allowance(owner, routerAddress);
+
+        require(
+            allowance >= tokenAmount,
+            'Aprovacao insuficiente para o Router'
+        );
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        IUniswapV2Router02(routerAddress).addLiquidityETH{value: ethAmount}(
+            address(caramelo),
+            tokenAmount,
+            0,
+            0,
+            owner,
+            block.timestamp + 300
+        );
+        vm.stopPrank();
+
+        address pair = caramelo.uniswapV2Pair();
+        uint256 lpBalance = IERC20(pair).balanceOf(owner);
+        require(lpBalance > 0, 'Liquidez nao foi adicionada com sucesso!');
+    }
+}
