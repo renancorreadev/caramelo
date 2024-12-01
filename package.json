@@ -7,6 +7,7 @@
     "compile": "npx hardhat compile",
     "test": "forge test --fork-url https://bsc-dataseed.binance.org/ -vv",
     "test-full": "forge test --fork-url https://bsc-dataseed.binance.org/ -vvvv",
+    "coverage": "forge coverage --no-match-coverage 'test/.*.sol'",
     "clean": "rm -rf node_modules",
     "cache": "npx hardhat clean"
   },

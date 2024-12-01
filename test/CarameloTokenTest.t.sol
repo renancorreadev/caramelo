@@ -4,11 +4,23 @@ pragma solidity ^0.8.20;
 import {Test} from 'forge-std/Test.sol';
 import {console} from 'forge-std/console.sol';
 import {Token} from '../contracts/Token.sol';
+
+/// @dev open zeppelin contracts utils
 import {IUniswapV2Router02, IUniswapV2Factory} from '../contracts/interfaces/UniswapV2Interfaces.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
+import {ERC1967Proxy} from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+
+/**
+ * @dev This contract is a test suite for the CarameloToken contract.
+ * It includes tests for the transfer, transferFrom, and transferBetweenExcludedAndNonExcluded functions.
+ *
+ * The test suite uses the Forge testing framework and includes the following components:
+ *
+ * - Token: The token contract that will be tested.
+ */
 
 /** Errors to tests  */
-
 error OwnerNotExcludedFromFee();
 error TotalSupplyNotMatch(uint256 actualSupply, uint256 expectedSupply);
 error MaxTransactionExceeded(uint256 maxTxAmount, uint256 attemptedAmount);
@@ -20,6 +32,8 @@ error ZeroAddress();
 error AlreadyExcluded();
 error NotExcluded();
 error FeesExceeded(uint256 totalFees);
+error InsufficientBalance(uint256 available, uint256 required);
+error TokenBalanceZero();
 
 contract CarameloTokenTest is Test {
     Token public token;
@@ -65,16 +79,16 @@ contract CarameloTokenTest is Test {
         });
 
     function setUp() public {
-        // Configurando o fork corretamente
+        /// @dev setting up the fork correctly
         vm.createSelectFork('https://bsc-dataseed.binance.org/');
 
-        // Criando o owner e iniciando seu contexto como `msg.sender`
+        /// @dev creating owner and starting its context as `msg.sender`
         (owner, ownerPrivateKey) = makeAddrAndKey('owner');
         (userA, userAPrivateKey) = makeAddrAndKey('userA');
         (userB, userBPrivateKey) = makeAddrAndKey('userB');
 
-        // Criando um novo contrato e inicializando-o
-        vm.startPrank(owner); // Inicia como owner
+        /// @dev creating a new contract and initializing it
+        vm.startPrank(owner);
         token = new Token();
         token.initialize(
             tokenParams.name,
@@ -127,7 +141,7 @@ contract CarameloTokenTest is Test {
         address excludedUser = makeAddr('excludedUser');
         uint256 transferAmount = 1000 * 10 ** tokenParams.decimals; // 1000 tokens
 
-        // Excluir o usuário das taxas
+        /// @dev exclude user from fees
         vm.startPrank(owner);
         token.excludeFromFee(excludedUser);
         vm.stopPrank();
@@ -142,7 +156,7 @@ contract CarameloTokenTest is Test {
             'Owner nao esta excluido das taxas'
         );
 
-        // Transferir tokens do owner para o usuário excluído
+        /// @dev transfer tokens from owner to excluded user
         console.log(
             '--> Transferindo',
             transferAmount,
@@ -152,7 +166,7 @@ contract CarameloTokenTest is Test {
         token.transfer(excludedUser, transferAmount);
         vm.stopPrank();
 
-        // Verificar se o valor recebido é exatamente o valor transferido (sem taxas)
+        /// @dev check if the received amount is exactly the transferred amount (without fees)
         uint256 excludedUserBalance = token.balanceOf(excludedUser);
         console.log('--> Balance do usuario excluido:', excludedUserBalance);
         assertEq(
@@ -161,17 +175,17 @@ contract CarameloTokenTest is Test {
             'Valor recebido nao corresponde ao transferido'
         );
 
-        // Transferir tokens do usuário excluído para outro endereço excluído (owner)
+        /// @dev transfer tokens from excluded user to another excluded address (owner)
         console.log('--> Transferindo tokens de volta para o owner');
         vm.startPrank(excludedUser);
         token.transfer(owner, transferAmount);
         vm.stopPrank();
 
-        // Verificar se o valor recebido de volta é exatamente o valor transferido
+        /// @dev check if the received amount is exactly the transferred amount
         uint256 ownerFinalBalance = token.balanceOf(owner);
         console.log('--> Balance final do owner:', ownerFinalBalance);
 
-        // Verificar se não houve alteração no supply total (não deve haver queima)
+        /// @dev check if there was no change in the total supply (no burning should occur)
         uint256 finalSupply = token.totalSupply();
         uint256 expectedSupply = tokenParams.initialSupply *
             10 ** tokenParams.decimals;
@@ -196,7 +210,7 @@ contract CarameloTokenTest is Test {
         address recipient = makeAddr('recipient');
         uint256 transferAmount = 1000 * 10 ** tokenParams.decimals; // 1000 tokens
 
-        // Transferir tokens do owner para o usuário normal primeiro
+        /// @dev transfer tokens from owner to normal user first
         vm.startPrank(owner);
         token.transfer(normalUser, transferAmount);
         vm.stopPrank();
@@ -204,7 +218,7 @@ contract CarameloTokenTest is Test {
         uint256 initialBalance = token.balanceOf(normalUser);
         console.log('Balance inicial do usuario:', initialBalance);
 
-        // Calcular taxas esperadas
+        /// @dev calculate expected fees
         uint256 totalFee = tokenParams.taxFee +
             tokenParams.liquidityFee +
             tokenParams.burnFee;
@@ -215,17 +229,17 @@ contract CarameloTokenTest is Test {
         console.log('Valor a transferir:', transferAmount);
         console.log('Valor esperado apos taxas:', expectedReceivedAmount);
 
-        // Fazer a transferência com taxas
+        /// @dev make the transfer with fees
         vm.startPrank(normalUser);
         token.transfer(recipient, transferAmount);
         vm.stopPrank();
 
-        // Verificar o valor recebido
+        /// @dev check the received amount
         uint256 recipientBalance = token.balanceOf(recipient);
         console.log('Valor recebido:', recipientBalance);
 
-        // Verificar se o valor está dentro da margem de erro aceitável (0.1%)
-        uint256 marginOfError = expectedReceivedAmount / 1000; // 0.1% do valor esperado
+        /// @dev check if the received amount is within the acceptable margin of error (0.1%)
+        uint256 marginOfError = expectedReceivedAmount / 1000; // 0.1% of the expected amount
         bool isWithinMargin = recipientBalance >=
             expectedReceivedAmount - marginOfError &&
             recipientBalance <= expectedReceivedAmount + marginOfError;
@@ -244,7 +258,7 @@ contract CarameloTokenTest is Test {
             )
         );
 
-        // Verificar se o supply total diminuiu devido à taxa de queima
+        /// @dev check if the total supply decreased due to burning
         uint256 burnAmount = (transferAmount * tokenParams.burnFee) / 100;
         uint256 expectedSupply = tokenParams.initialSupply *
             10 ** tokenParams.decimals -
@@ -272,28 +286,28 @@ contract CarameloTokenTest is Test {
         address spender = makeAddr('spender');
         uint256 amount = 1000 * 10 ** tokenParams.decimals;
 
-        // Verificar balance inicial do owner
+        /// @dev check initial balance of owner
         uint256 ownerBalance = token.balanceOf(owner);
         console.log('Balance inicial do owner:', ownerBalance);
 
         vm.startPrank(owner);
 
-        // Aprovar spender
+        /// @dev approve spender
         token.approve(spender, amount);
 
-        // Verificar allowance
+        /// @dev check allowance
         uint256 allowance = token.allowance(owner, spender);
         console.log('Allowance para spender:', allowance);
         assertEq(allowance, amount, 'Allowance incorreta');
 
         vm.stopPrank();
 
-        // Tentar transferFrom como spender
+        /// @dev try to transferFrom as spender
         vm.startPrank(spender);
         token.transferFrom(owner, spender, amount);
         vm.stopPrank();
 
-        // Verificar balances finais
+        /// @dev check final balances
         uint256 ownerBalanceAfter = token.balanceOf(owner);
         uint256 spenderBalance = token.balanceOf(spender);
 
@@ -320,7 +334,7 @@ contract CarameloTokenTest is Test {
         address normalUser = makeAddr('normalUser');
         uint256 transferAmount = 1000 * 10 ** tokenParams.decimals;
 
-        // Excluir um usuário das taxas
+        /// @dev exclude a user from fees
         vm.startPrank(owner);
         token.excludeFromFee(excludedUser);
         token.transfer(excludedUser, transferAmount);
@@ -333,13 +347,13 @@ contract CarameloTokenTest is Test {
         );
         console.log('    Normal user balance:', token.balanceOf(normalUser));
 
-        // Transferir de excluído para não excluído (NÃO deve aplicar taxas)
+        /// @dev transfer from excluded to non-excluded (should not apply fees)
         console.log('\n--> Transferindo de usuario excluido para normal');
         vm.startPrank(excludedUser);
         token.transfer(normalUser, transferAmount);
         vm.stopPrank();
 
-        // Não deve haver taxas pois o sender está excluído
+        /// @dev there should be no fees since the sender is excluded
         uint256 expectedAmount = transferAmount;
 
         console.log('    Valor transferido:', transferAmount);
@@ -354,7 +368,7 @@ contract CarameloTokenTest is Test {
             'Valor recebido incorreto - nao deveria ter taxas'
         );
 
-        // Agora testamos transferência de não excluído para qualquer endereço (deve aplicar taxas)
+        /// @dev now test transfer from non-excluded to any address (should apply fees)
         console.log('\n--> Transferindo de usuario normal para excluido');
         uint256 smallerAmount = 100 * 10 ** tokenParams.decimals;
 
@@ -364,7 +378,7 @@ contract CarameloTokenTest is Test {
         token.transfer(excludedUser, smallerAmount);
         vm.stopPrank();
 
-        // Calcular taxas esperadas para transferência de usuário normal
+        /// @dev calculate expected fees for transfer from normal user
         uint256 totalFee = tokenParams.taxFee +
             tokenParams.liquidityFee +
             tokenParams.burnFee;
@@ -377,8 +391,8 @@ contract CarameloTokenTest is Test {
         console.log('    Valor esperado apos taxas:', expectedAmountBack);
         console.log('    Valor recebido:', actualReceived);
 
-        // Verificar margem de erro para a segunda transferência
-        uint256 marginOfError = expectedAmountBack / 1000; // 0.1% do valor esperado
+        /// @dev check margin of error for the second transfer
+        uint256 marginOfError = expectedAmountBack / 1000; // 0.1% of the expected amount
         bool isWithinMargin = actualReceived >=
             expectedAmountBack - marginOfError &&
             actualReceived <= expectedAmountBack + marginOfError;
@@ -406,27 +420,27 @@ contract CarameloTokenTest is Test {
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        // Transfer tokens para userA
+        /// @dev transfer tokens to userA
         uint256 transferAmount = 1000 * 10 ** tokenParams.decimals;
         vm.startPrank(owner);
         token.transfer(userA, transferAmount);
         vm.stopPrank();
 
-        // Registrar balances iniciais
+        /// @dev register initial balances
         uint256 initialUserABalance = token.balanceOf(userA);
         uint256 initialUserBBalance = token.balanceOf(userB);
 
         console.log('Balance inicial userA:', initialUserABalance);
         console.log('Balance inicial userB:', initialUserBBalance);
 
-        // UserA transfere tokens para userB (com taxas)
+        /// @dev userA transfers tokens to userB (with fees)
         uint256 transferAmount2 = 100 * 10 ** tokenParams.decimals;
 
-        // Registrar saldo do contrato antes da transferência
+        /// @dev register contract balance before the transfer
         uint256 contractBalanceBefore = token.balanceOf(address(token));
         console.log('\nSaldo do contrato antes:', contractBalanceBefore);
 
-        // Calcular taxas esperadas
+        /// @dev calculate expected fees
         uint256 totalFee = tokenParams.taxFee +
             tokenParams.liquidityFee +
             tokenParams.burnFee;
@@ -446,7 +460,7 @@ contract CarameloTokenTest is Test {
         token.transfer(userB, transferAmount2);
         vm.stopPrank();
 
-        // Verificar saldo do contrato após a transferência
+        /// @dev check contract balance after the transfer
         uint256 contractBalanceAfter = token.balanceOf(address(token));
         uint256 contractBalanceIncrease = contractBalanceAfter -
             contractBalanceBefore;
@@ -454,7 +468,7 @@ contract CarameloTokenTest is Test {
         console.log('\nSaldo do contrato depois:', contractBalanceAfter);
         console.log('Aumento no saldo do contrato:', contractBalanceIncrease);
 
-        // Verificar se o aumento no saldo do contrato está correto (com margem de erro)
+        /// @dev check if the increase in contract balance is correct (with margin of error)
         bool isContractBalanceCorrect = (contractBalanceIncrease >=
             (expectedLiquidityFee * 999) / 1000) &&
             (contractBalanceIncrease <= (expectedLiquidityFee * 1001) / 1000);
@@ -464,7 +478,7 @@ contract CarameloTokenTest is Test {
             'Saldo do contrato nao aumentou conforme esperado'
         );
 
-        // Verificar reflection
+        /// @dev check reflection
         uint256 finalUserABalance = token.balanceOf(userA);
         uint256 finalUserBBalance = token.balanceOf(userB);
         uint256 reflectionBalance = token.reflectionBalanceOf(address(this));
@@ -474,12 +488,12 @@ contract CarameloTokenTest is Test {
         console.log('Balance final userB:', finalUserBBalance);
         console.log('Reflection balance:', reflectionBalance);
 
-        // Verificar a dedução com margem de erro
+        /// @dev check deduction with margin of error
         uint256 actualDeduction = initialUserABalance - finalUserABalance;
         console.log('Valor deduzido de userA:', actualDeduction);
         console.log('Valor da transfer:', transferAmount2);
 
-        // Verificar se o valor recebido por userB está correto
+        /// @dev check if the received amount by userB is correct
         bool isReceivedAmountCorrect = (finalUserBBalance >=
             (expectedTransferAmount * 999) / 1000) &&
             (finalUserBBalance <= (expectedTransferAmount * 1001) / 1000);
@@ -489,7 +503,7 @@ contract CarameloTokenTest is Test {
             'Valor recebido por userB incorreto'
         );
 
-        // Verificar se a dedução está dentro da margem esperada
+        /// @dev check if the deduction is within the expected margin
         uint256 expectedDeduction = transferAmount2;
         bool isDeductionCorrect = (actualDeduction >=
             (expectedDeduction * 999) / 1000) &&
@@ -497,7 +511,7 @@ contract CarameloTokenTest is Test {
 
         assertTrue(isDeductionCorrect, 'Deducao fora da margem esperada');
 
-        // Verificar se houve reflection
+        /// @dev check if reflection was processed correctly
         assertTrue(
             reflectionBalance == 0 || reflectionBalance > 0,
             'Reflection nao foi processado corretamente'
@@ -515,11 +529,11 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Primeiro verifica o estado inicial
+        /// @dev check initial state
         bool initialState = token.swapAndLiquifyEnabled();
         console.log('Estado inicial do swap:', initialState);
 
-        // Se estiver desabilitado, habilita primeiro
+        /// @dev if disabled, enable first
         if (!initialState) {
             token.setSwapAndLiquifyEnabled(true);
             assertTrue(
@@ -528,14 +542,14 @@ contract CarameloTokenTest is Test {
             );
         }
 
-        // Agora desabilita
+        /// @dev now disable
         token.setSwapAndLiquifyEnabled(false);
         assertFalse(
             token.swapAndLiquifyEnabled(),
             'Deveria estar desabilitado'
         );
 
-        // Habilita novamente
+        /// @dev enable again
         token.setSwapAndLiquifyEnabled(true);
         assertTrue(token.swapAndLiquifyEnabled(), 'Deveria estar habilitado');
 
@@ -553,7 +567,7 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Tentar setar taxas que excedem 100%
+        /// @dev try to set fees that exceed 100%
         uint256 invalidTaxFee = 40;
         uint256 invalidLiquidityFee = 40;
         uint256 invalidBurnFee = 21;
@@ -575,7 +589,7 @@ contract CarameloTokenTest is Test {
         );
         token.setFees(invalidTaxFee, invalidLiquidityFee, invalidBurnFee);
 
-        // Testar valores válidos no limite
+        /// @dev test valid values within the limit
         uint256 validTaxFee = 33;
         uint256 validLiquidityFee = 33;
         uint256 validBurnFee = 34;
@@ -600,6 +614,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test burn mechanism
     function testBurnMechanism() public {
         console.log('-------------------------------------------------');
         console.log('------------- TEST BURN MECHANISM ---------------');
@@ -609,13 +624,13 @@ contract CarameloTokenTest is Test {
         uint256 initialSupply = token.totalSupply();
         console.log('Supply inicial:', initialSupply);
 
-        // Primeiro transferir para uma conta não excluída (userA)
+        /// @dev first transfer to a non-excluded account (userA)
         uint256 transferAmount = 1000 * 10 ** tokenParams.decimals;
         vm.startPrank(owner);
         token.transfer(userA, transferAmount * 2); // Transferir o dobro para ter saldo suficiente
         vm.stopPrank();
 
-        // Agora fazer a transferência que deve ter queima (de userA para userB)
+        /// @dev now make the transfer that should have burning (from userA to userB)
         vm.startPrank(userA);
         uint256 expectedBurn = (transferAmount * token.burnFee()) / 100;
 
@@ -632,8 +647,8 @@ contract CarameloTokenTest is Test {
         console.log('Supply final:', finalSupply);
         console.log('Tokens queimados:', actualBurn);
 
-        // Verificar se a queima está próxima do valor esperado (com margem de erro)
-        uint256 marginOfError = expectedBurn / 100; // 1% de margem
+        /// @dev check if burning is close to the expected value (with margin of error)
+        uint256 marginOfError = expectedBurn / 100; // 1% of margin
         bool isWithinMargin = actualBurn >= expectedBurn - marginOfError &&
             actualBurn <= expectedBurn + marginOfError;
 
@@ -642,6 +657,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test maxTxAmount
     function testMaxTxAmount() public {
         console.log('-------------------------------------------------');
         console.log('------------ TEST MAX TX AMOUNT -----------------');
@@ -663,12 +679,12 @@ contract CarameloTokenTest is Test {
         );
         console.log('Max TX Amount apos update:', token.maxTxAmount());
 
-        // Transferir tokens para userA para testar o limite
+        /// @dev transfer tokens to userA to test the limit
         token.transfer(userA, newMaxTxAmount);
         console.log('Balance do userA:', token.balanceOf(userA));
         vm.stopPrank();
 
-        // Teste de transferência acima do limite
+        /// @dev try to transfer above the limit
         uint256 attemptAmount = newMaxTxAmount + 1;
         vm.startPrank(userA);
 
@@ -685,6 +701,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test numTokensSellToAddToLiquidity
     function testNumTokensSellToAddToLiquidity() public {
         console.log('-------------------------------------------------');
         console.log('------ TEST NUM TOKENS SELL TO ADD LIQUIDITY ----');
@@ -694,7 +711,7 @@ contract CarameloTokenTest is Test {
         uint256 currentAmount = token.numTokensSellToAddToLiquidity();
         uint256 maxTx = token.maxTxAmount();
 
-        // Teste com valor válido (menor que maxTxAmount)
+        /// @dev test with valid value (less than maxTxAmount)
         uint256 newValidAmount = maxTx / 2;
 
         console.log('Valor atual:', currentAmount);
@@ -703,7 +720,7 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Teste com valor válido
+        /// @dev test with valid value (less than maxTxAmount)
         token.setNumTokensSellToAddToLiquidity(
             newValidAmount / 10 ** tokenParams.decimals
         );
@@ -713,7 +730,7 @@ contract CarameloTokenTest is Test {
             'Valor nao foi atualizado corretamente'
         );
 
-        // Teste com valor inválido (maior que maxTxAmount)
+        /// @dev test with invalid value (greater than maxTxAmount)
         uint256 invalidAmount = maxTx + 1000 * 10 ** tokenParams.decimals;
         console.log('Tentando setar valor invalido:', invalidAmount);
 
@@ -734,6 +751,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test update uniswapV2Router
     function testUpdateUniswapV2Router() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST UPDATE UNISWAP V2 ROUTER ----------');
@@ -748,7 +766,7 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Teste com endereço válido
+        /// @dev test with valid address
         token.updateUniswapV2Router(newRouter);
         assertEq(
             address(token.uniswapV2Router()),
@@ -756,7 +774,7 @@ contract CarameloTokenTest is Test {
             'Router nao foi atualizado'
         );
 
-        // Teste com endereço zero (deve reverter)
+        /// @dev test with zero address
         vm.expectRevert(ZeroAddress.selector);
         token.updateUniswapV2Router(address(0));
 
@@ -766,6 +784,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test exclude from fee
     function testExcludeFromFee() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST EXCLUDE FROM FEE -----------------');
@@ -782,11 +801,11 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Teste de inclusão em conta não excluída (deve reverter)
+        /// @dev test inclusion in non-excluded account (should revert)
         vm.expectRevert(NotExcluded.selector);
         token.includeInFee(testUser);
 
-        // Teste de exclusão
+        /// @dev test exclusion from fee
         token.excludeFromFee(testUser);
         assertTrue(
             token.isAccountExcludedFromFree(testUser),
@@ -797,11 +816,11 @@ contract CarameloTokenTest is Test {
             token.isAccountExcludedFromFree(testUser)
         );
 
-        // Teste de tentativa de excluir novamente (deve reverter)
+        /// @dev test attempt to exclude again (should revert)
         vm.expectRevert(AlreadyExcluded.selector);
         token.excludeFromFee(testUser);
 
-        // Teste de inclusão
+        /// @dev test inclusion
         token.includeInFee(testUser);
         assertFalse(
             token.isAccountExcludedFromFree(testUser),
@@ -812,7 +831,7 @@ contract CarameloTokenTest is Test {
             token.isAccountExcludedFromFree(testUser)
         );
 
-        // Teste de tentativa de incluir novamente (deve reverter)
+        /// @dev test attempt to include again (should revert)
         vm.expectRevert(NotExcluded.selector);
         token.includeInFee(testUser);
 
@@ -820,6 +839,7 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test set fees
     function testSetFees() public {
         console.log('-------------------------------------------------');
         console.log('-------------- TEST SET FEES --------------------');
@@ -837,7 +857,7 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Teste com valores válidos
+        /// @dev test with valid values
         uint256 newTaxFee = 3;
         uint256 newLiquidityFee = 4;
         uint256 newBurnFee = 2;
@@ -857,7 +877,7 @@ contract CarameloTokenTest is Test {
         );
         assertEq(token.burnFee(), newBurnFee, 'Burn Fee nao foi atualizada');
 
-        // Teste com valores que excedem 100%
+        /// @dev test with values that exceed 100%
         uint256 invalidTaxFee = 50;
         uint256 invalidLiquidityFee = 40;
         uint256 invalidBurnFee = 20;
@@ -875,7 +895,7 @@ contract CarameloTokenTest is Test {
         );
         token.setFees(invalidTaxFee, invalidLiquidityFee, invalidBurnFee);
 
-        // Teste com não-owner (deve reverter)
+        /// @dev test with non-owner (should revert)
         vm.stopPrank();
         vm.startPrank(userA);
         vm.expectRevert('Ownable: caller is not the owner');
@@ -892,7 +912,9 @@ contract CarameloTokenTest is Test {
 
     // ---------------------------------------------------------------------------
     /// @dev PancakeSwap or Swap Dex tests
+    // ---------------------------------------------------------------------------
 
+    /// @dev test add liquidity
     function testAddLiquidity() public {
         console.log('-------------------------------------------------');
         console.log('------------- TEST ADD LIQUIDITY ----------------');
@@ -901,33 +923,33 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Configurar Uniswap (PancakeSwap)
+        /// @dev configure Uniswap (PancakeSwap)
         token.configureUniswap(routerAddress);
 
-        // Setup para adicionar liquidez
+        /// @dev setup to add liquidity
         uint256 tokenAmount = 1000 * 10 ** tokenParams.decimals;
         uint256 ethAmount = 1 ether;
 
-        // Verificar balance inicial do owner
+        /// @dev check initial balance of owner
         uint256 ownerBalance = token.balanceOf(owner);
         console.log('\nBalance inicial do owner:', ownerBalance);
         console.log('Token amount para liquidez:', tokenAmount);
         console.log('ETH amount para liquidez:', ethAmount);
 
-        // Aprovar router para gastar tokens
+        /// @dev approve router to spend tokens
         token.approve(routerAddress, tokenAmount);
 
-        // Verificar allowance
+        /// @dev check allowance
         uint256 allowance = token.allowance(owner, routerAddress);
         console.log('Allowance para o router:', allowance);
 
-        // Adicionar ETH ao owner
+        /// @dev give ETH to owner
         vm.deal(owner, ethAmount);
         console.log('ETH balance do owner:', address(owner).balance);
 
         console.log('\nAdicionando liquidez...');
 
-        // Adicionar liquidez
+        /// @dev add liquidity
         IUniswapV2Router02(routerAddress).addLiquidityETH{value: ethAmount}(
             address(token),
             tokenAmount,
@@ -939,20 +961,20 @@ contract CarameloTokenTest is Test {
 
         vm.stopPrank();
 
-        // Verificar balances no par
+        /// @dev check balances in the pair
         address pair = token.uniswapV2Pair();
         uint256 tokenBalance = token.balanceOf(pair);
-        uint256 wethBalance = IERC20(WBNB).balanceOf(pair);
+        uint256 WBNBBalance = IERC20(WBNB).balanceOf(pair);
 
         console.log('Apos adicionar liquidez:');
         console.log('Token balance no par:', tokenBalance);
-        console.log('WBNB balance no par:', wethBalance);
+        console.log('WBNB balance no par:', WBNBBalance);
         console.log('ETH balance do owner:', address(owner).balance);
 
         assertTrue(tokenBalance > 0, 'Sem tokens no par');
-        assertTrue(wethBalance > 0, 'Sem WBNB no par');
+        assertTrue(WBNBBalance > 0, 'Sem WBNB no par');
 
-        // Verificar se LP tokens foram mintados para o owner
+        /// @dev check if LP tokens were minted to the owner
         uint256 lpBalance = IERC20(pair).balanceOf(owner);
         console.log('LP tokens do owner:', lpBalance);
         assertTrue(lpBalance > 0, 'Owner nao recebeu LP tokens');
@@ -960,20 +982,21 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test swap tokens for ETH
     function testSwapExactTokensForETH() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST SWAP TOKENS FOR ETH ---------------');
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        // Setup inicial - adiciona liquidez
+        /// @dev setup initial - add liquidity
         uint256 lpTokens = _addLiquidity(
             1000 * 10 ** tokenParams.decimals, // 1000 tokens
             1 ether // 1 BNB
         );
         console.log('LP Tokens recebidos:', lpTokens);
 
-        // Transfer alguns tokens para userA para testar o swap
+        /// @dev transfer some tokens to userA to test the swap
         uint256 amountIn = 100 * 10 ** tokenParams.decimals;
         vm.startPrank(owner);
         token.transfer(userA, amountIn);
@@ -984,21 +1007,21 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(userA);
 
-        // Aprovar tokens para o router
+        /// @dev approve tokens for the router
         token.approve(routerAddress, amountIn);
 
-        // Criar path para swap
+        /// @dev create path for swap
         address[] memory path = new address[](2);
         path[0] = address(token);
         path[1] = WBNB;
 
-        // Registrar balance de ETH inicial
+        /// @dev register initial ETH balance
         uint256 initialETHBalance = userA.balance;
         console.log('Balance inicial de ETH do userA:', initialETHBalance);
 
         console.log('\nExecutando swap...');
 
-        // Executar swap
+        /// @dev execute swap
         IUniswapV2Router02(routerAddress)
             .swapExactTokensForETHSupportingFeeOnTransferTokens(
                 amountIn,
@@ -1029,13 +1052,14 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test swap tokens for exact ETH
     function testSwapTokensForExactETH() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST SWAP TOKENS FOR EXACT ETH ----------');
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        // Setup inicial - liquidez respeitando o maxTransaction
+        /// @dev setup initial - liquidity respecting the maxTransaction
         uint256 maxTx = token.maxTxAmount();
         console.log('Max Transaction:', maxTx);
 
@@ -1045,21 +1069,21 @@ contract CarameloTokenTest is Test {
         );
         console.log('LP Tokens recebidos:', lpTokens);
 
-        // Transfer tokens para userA (valor menor que maxTx)
-        uint256 initialAmount = maxTx / 10; // 10% do maxTransaction
+        /// @dev transfer tokens to userA (value less than maxTx)
+        uint256 initialAmount = maxTx / 10; // 10% of maxTransaction
         vm.startPrank(owner);
         token.transfer(userA, initialAmount);
         vm.stopPrank();
 
         vm.startPrank(userA);
 
-        // Aprovar tokens para o router
+        /// @dev approve tokens for the router
         token.approve(routerAddress, initialAmount);
 
-        // Calcular quantidade de tokens para o swap (ainda menor)
-        uint256 tokensToSpend = maxTx / 20; // 5% do maxTransaction
+        /// @dev calculate amount of tokens to spend (still less than maxTx)
+        uint256 tokensToSpend = maxTx / 20; // 5% of maxTransaction
 
-        // Criar path para swap
+        /// @dev create path for swap
         address[] memory path = new address[](2);
         path[0] = address(token);
         path[1] = WBNB;
@@ -1072,7 +1096,7 @@ contract CarameloTokenTest is Test {
         console.log('Balance inicial de ETH:', initialETHBalance);
         console.log('Tokens a gastar:', tokensToSpend);
 
-        // Executar swap usando a função que suporta taxas
+        /// @dev execute swap using the function that supports fees
         IUniswapV2Router02(routerAddress)
             .swapExactTokensForETHSupportingFeeOnTransferTokens(
                 tokensToSpend,
@@ -1102,25 +1126,26 @@ contract CarameloTokenTest is Test {
         console.log('\n');
     }
 
+    /// @dev test swap ETH for tokens
     function testSwapExactETHForTokens() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST SWAP ETH FOR TOKENS ----------------');
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        // Setup inicial - liquidez respeitando o maxTransaction
+        /// @dev setup initial - liquidity respecting the maxTransaction
         uint256 maxTx = token.maxTxAmount();
         console.log('Max Transaction:', maxTx);
 
         uint256 lpTokens = _addLiquidity(maxTx, 100 ether);
         console.log('LP Tokens recebidos:', lpTokens);
 
-        // Setup para o swap
-        vm.deal(userA, 1 ether); // Dar 1 BNB para userA
+        /// @dev setup for the swap
+        vm.deal(userA, 1 ether); // Give 1 BNB to userA
 
         vm.startPrank(userA);
 
-        // Criar path para swap
+        /// @dev create path for swap
         address[] memory path = new address[](2);
         path[0] = WBNB;
         path[1] = address(token);
@@ -1134,7 +1159,7 @@ contract CarameloTokenTest is Test {
         console.log('Balance inicial de ETH:', initialETHBalance);
         console.log('ETH para swap:', swapAmount);
 
-        // Executar swap
+        /// @dev execute swap
         IUniswapV2Router02(routerAddress)
             .swapExactETHForTokensSupportingFeeOnTransferTokens{
             value: swapAmount
@@ -1165,20 +1190,21 @@ contract CarameloTokenTest is Test {
             'Tokens nao foram recebidos'
         );
 
-        // Verificar se as taxas foram aplicadas corretamente
+        /// @dev check if the fees were applied correctly
         uint256 pairBalance = token.balanceOf(token.uniswapV2Pair());
         console.log('\nBalance do par apos swap:', pairBalance);
 
         console.log('\n');
     }
 
+    /// @dev test remove liquidity
     function testRemoveLiquidity() public {
         console.log('-------------------------------------------------');
         console.log('------------- TEST REMOVE LIQUIDITY -------------');
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        // Primeiro adiciona liquidez
+        /// @dev first add liquidity
         uint256 maxTx = token.maxTxAmount();
         uint256 lpTokens = _addLiquidity(maxTx, 10 ether);
 
@@ -1187,10 +1213,10 @@ contract CarameloTokenTest is Test {
 
         vm.startPrank(owner);
 
-        // Aprovar LP tokens para o router
+        /// @dev approve LP tokens for the router
         IERC20(pair).approve(routerAddress, lpTokens);
 
-        // Registrar balances iniciais
+        /// @dev register initial balances
         uint256 initialTokenBalance = token.balanceOf(owner);
         uint256 initialETHBalance = address(owner).balance;
 
@@ -1199,7 +1225,7 @@ contract CarameloTokenTest is Test {
         console.log('Balance inicial de ETH:', initialETHBalance);
         console.log('LP tokens para remover:', lpTokens);
 
-        // Remover liquidez
+        /// @dev remove liquidity
         (uint256 amountToken, uint256 amountETH) = IUniswapV2Router02(
             routerAddress
         ).removeLiquidityETH(
@@ -1219,7 +1245,7 @@ contract CarameloTokenTest is Test {
         console.log('Balance final de tokens:', token.balanceOf(owner));
         console.log('Balance final de ETH:', address(owner).balance);
 
-        // Verificar se o par está vazio
+        /// @dev check if the pair is empty
         uint256 pairTokenBalance = token.balanceOf(pair);
         uint256 pairETHBalance = IERC20(WBNB).balanceOf(pair);
 
@@ -1248,18 +1274,18 @@ contract CarameloTokenTest is Test {
     ) internal returns (uint256 lpTokens) {
         vm.startPrank(owner);
 
-        // Configurar Uniswap se ainda não estiver configurado
+        /// @dev configure Uniswap if it's not already configured
         if (address(token.uniswapV2Router()) == address(0)) {
             token.configureUniswap(routerAddress);
         }
 
-        // Aprovar router para gastar tokens
+        /// @dev approve router to spend tokens
         token.approve(routerAddress, tokenAmount);
 
-        // Adicionar ETH ao owner
+        /// @dev give ETH to owner
         vm.deal(owner, ethAmount);
 
-        // Adicionar liquidez
+        /// @dev add liquidity
         (
             uint256 amountToken,
             uint256 amountETH,
@@ -1275,7 +1301,7 @@ contract CarameloTokenTest is Test {
 
         vm.stopPrank();
 
-        // Verificações de segurança
+        /// @dev security checks
         address pair = token.uniswapV2Pair();
         require(
             token.balanceOf(pair) >= amountToken,
@@ -1286,7 +1312,7 @@ contract CarameloTokenTest is Test {
             'WBNB nao foi transferido para o par'
         );
 
-        // Retornar quantidade de LP tokens recebidos
+        /// @dev return amount of LP tokens received
         lpTokens = IERC20(pair).balanceOf(owner);
         require(lpTokens > 0, 'LP tokens nao foram mintados');
         require(
@@ -1295,5 +1321,514 @@ contract CarameloTokenTest is Test {
         );
 
         return lpTokens;
+    }
+
+    /// @dev test reflection balance of complete
+    function testReflectionBalanceOfComplete() public {
+        vm.startPrank(owner);
+
+        /// @dev test with zero address
+        vm.expectRevert('Zero address');
+        token.reflectionBalanceOf(address(0));
+
+        /// @dev test with valid address before any transfer
+        uint256 initialReflection = token.reflectionBalanceOf(owner);
+        assertGt(initialReflection, 0, 'Initial reflection should be positive');
+
+        /// @dev test after transfer with fees
+        token.transfer(userA, 1000);
+        uint256 reflectionAfterTransfer = token.reflectionBalanceOf(userA);
+        assertGt(
+            reflectionAfterTransfer,
+            0,
+            'Reflection after transfer should be positive'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test transferFrom complete
+    function testTransferFromComplete() public {
+        /// @dev First test: transferFrom without approval
+        vm.startPrank(userA);
+        vm.expectRevert(
+            abi.encodeWithSelector(InsufficientBalance.selector, 0, 100)
+        );
+        token.transferFrom(owner, userB, 100);
+        vm.stopPrank();
+
+        /// @dev Setup for the next tests
+        vm.startPrank(owner);
+        token.approve(userA, 50);
+        vm.stopPrank();
+
+        /// @dev Second test: insufficient approval
+        vm.startPrank(userA);
+        vm.expectRevert(
+            abi.encodeWithSelector(InsufficientBalance.selector, 50, 100)
+        );
+        token.transferFrom(owner, userB, 100);
+        vm.stopPrank();
+
+        /// @dev Setup for the final test
+        vm.startPrank(owner);
+        token.approve(userA, 200);
+        vm.stopPrank();
+
+        /// @dev Third test: sufficient approval
+        vm.startPrank(userA);
+        token.transferFrom(owner, userB, 100);
+        vm.stopPrank();
+
+        /// @dev Final checks
+        assertEq(
+            token.allowance(owner, userA),
+            100,
+            'Allowance not properly decreased'
+        );
+    }
+
+    /// @dev test updateUniswapV2RouterComplete
+    function testUpdateUniswapV2RouterComplete() public {
+        vm.startPrank(owner);
+
+        /// @dev Test with zero address
+        vm.expectRevert(abi.encodeWithSelector(ZeroAddress.selector));
+        token.updateUniswapV2Router(address(0));
+
+        /// @dev Test update to new router
+        address newRouter = makeAddr('newRouter');
+        token.updateUniswapV2Router(newRouter);
+        assertEq(
+            address(token.uniswapV2Router()),
+            newRouter,
+            'Router not updated'
+        );
+
+        /// @dev Test multiple updates
+        address newerRouter = makeAddr('newerRouter');
+        token.updateUniswapV2Router(newerRouter);
+        assertEq(
+            address(token.uniswapV2Router()),
+            newerRouter,
+            'Router not updated again'
+        );
+
+        vm.stopPrank();
+    }
+
+    function testSetNumTokensSellToAddToLiquidityComplete() public {
+        vm.startPrank(owner);
+
+        uint256 maxTx = token.maxTxAmount();
+
+        /// @dev test with value greater than maxTxAmount
+        uint256 tooLarge = maxTx / (10 ** token.decimals()) + 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NumTokensSellToAddToLiquidityFailed.selector,
+                tooLarge * 10 ** token.decimals(),
+                maxTx
+            )
+        );
+        token.setNumTokensSellToAddToLiquidity(tooLarge);
+
+        /// @dev test with valid amount
+        uint256 validAmount = maxTx / (10 ** token.decimals()) / 2;
+        token.setNumTokensSellToAddToLiquidity(validAmount);
+        assertEq(
+            token.numTokensSellToAddToLiquidity(),
+            validAmount * 10 ** token.decimals(),
+            'Value not updated correctly'
+        );
+
+        /// @dev test with minimum value
+        token.setNumTokensSellToAddToLiquidity(1);
+        assertEq(
+            token.numTokensSellToAddToLiquidity(),
+            1 * 10 ** token.decimals(),
+            'Minimum value not set correctly'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test approve edge cases
+    function testApproveEdgeCases() public {
+        vm.startPrank(owner);
+
+        /// @dev test with zero address
+        vm.expectRevert(abi.encodeWithSelector(ZeroAddress.selector));
+        token.approve(address(0), 100);
+
+        /// @dev test with zero value
+        token.approve(userA, 0);
+        assertEq(token.allowance(owner, userA), 0, 'Allowance should be zero');
+
+        /// @dev test with maximum value
+        token.approve(userA, type(uint256).max);
+        assertEq(
+            token.allowance(owner, userA),
+            type(uint256).max,
+            'Allowance should be max'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test receive function
+    function testReceiveFunction() public {
+        vm.startPrank(owner);
+
+        /// @dev test sending ETH directly to the contract
+        vm.deal(owner, 1 ether);
+        (bool success, ) = address(token).call{value: 1 ether}('');
+        assertTrue(success, 'Should accept ETH');
+        assertEq(
+            address(token).balance,
+            1 ether,
+            'Contract balance should increase'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test swapAndLiquify with zero balance
+    function testSwapAndLiquifyWithZeroBalance() public {
+        vm.startPrank(owner);
+
+        /// @dev setup
+        address factoryAddress = makeAddr('factory');
+        _setupMocks(factoryAddress);
+        token.configureUniswap(routerAddress);
+        token.setSwapAndLiquifyEnabled(true);
+
+        /// @dev test with zero balance
+        uint256 balanceBefore = token.balanceOf(address(token));
+        require(balanceBefore == 0, 'Contract should have zero balance');
+
+        /// @dev transfer should not trigger swap
+        token.transfer(userA, 100);
+
+        /// @dev verify that nothing changed
+        assertEq(
+            token.balanceOf(address(token)),
+            0,
+            'Balance should remain zero'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test transfer with maximum values
+    function testTransferWithMaximumValues() public {
+        vm.startPrank(owner);
+
+        /// @dev test with maximum allowed value
+        uint256 maxAmount = token.maxTxAmount();
+        token.transfer(userA, maxAmount);
+        assertEq(
+            token.balanceOf(userA),
+            maxAmount,
+            'Transfer of max amount failed'
+        );
+
+        /// @dev test with value slightly above the maximum
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MaxTransactionExceeded.selector,
+                maxAmount,
+                maxAmount + 1
+            )
+        );
+        token.transfer(userA, maxAmount + 1);
+
+        vm.stopPrank();
+    }
+
+    /// @dev test transfer with maximum fees
+    function testTransferWithMaximumFees() public {
+        vm.startPrank(owner);
+
+        /// @dev Set fees to maximum
+        token.setFees(33, 33, 33); // Total 99%
+
+        /// @dev Transfer with maximum fees
+        uint256 amount = 1000 * 10 ** token.decimals();
+        uint256 initialBalance = token.balanceOf(userA);
+
+        /// @dev Include owner in fees to test with maximum fees
+        token.includeInFee(owner);
+        token.transfer(userA, amount);
+
+        /// @dev Verify if the received amount is approximately 1% of the sent amount
+        uint256 expectedAmount = amount / 100;
+        uint256 actualBalance = token.balanceOf(userA) - initialBalance;
+
+        /// @dev Add margin of error of 0.1%
+        uint256 marginOfError = expectedAmount / 1000;
+        bool isWithinMargin = actualBalance >= expectedAmount - marginOfError &&
+            actualBalance <= expectedAmount + marginOfError;
+
+        assertTrue(
+            isWithinMargin,
+            string(
+                abi.encodePacked(
+                    'Transfer with maximum fees failed. Received: ',
+                    vm.toString(actualBalance),
+                    ', Expected: ',
+                    vm.toString(expectedAmount),
+                    ' +/- ',
+                    vm.toString(marginOfError)
+                )
+            )
+        );
+
+        vm.stopPrank();
+    }
+
+    function testSwapAndLiquifyWithMinimumAmount() public {
+        vm.startPrank(owner);
+
+        /// @dev Setup
+        address factoryAddress = makeAddr('factory');
+        _setupMocks(factoryAddress);
+        token.configureUniswap(routerAddress);
+        token.setSwapAndLiquifyEnabled(true);
+
+        /// @dev Set minimum value to trigger swap
+        token.setNumTokensSellToAddToLiquidity(1);
+
+        /// @dev Mock for swap
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(
+                IUniswapV2Router02
+                    .swapExactTokensForETHSupportingFeeOnTransferTokens
+                    .selector
+            ),
+            abi.encode()
+        );
+
+        /// @dev Transfer exact amount to trigger swap
+        uint256 minAmount = token.numTokensSellToAddToLiquidity();
+        token.transfer(address(token), minAmount);
+
+        /// @dev Verify if swap was triggered
+        assertTrue(token.swapAndLiquifyEnabled(), 'Swap should remain enabled');
+
+        vm.stopPrank();
+    }
+
+    function testReflectionWithZeroFees() public {
+        vm.startPrank(owner);
+
+        // Configurar todas as taxas como zero
+        token.setFees(0, 0, 0);
+
+        // Transferir tokens
+        uint256 amount = 1000;
+        uint256 initialReflection = token.reflectionBalanceOf(userA);
+        token.transfer(userA, amount);
+
+        // Verificar se não houve reflexão
+        assertEq(
+            token.reflectionBalanceOf(userA),
+            initialReflection + amount,
+            'Reflection should equal transfer amount with zero fees'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// ------------------------------------------------------------------------
+    /// @dev open zeppelin contracts testings
+    /// ------------------------------------------------------------------------
+    function testInitializerRevert() public {
+        vm.startPrank(owner);
+
+        /// @dev Trying to initialize again should fail
+        vm.expectRevert('Initializable: contract is already initialized');
+        token.initialize(
+            'Token2',
+            'TKN2',
+            1_000_000,
+            6,
+            5,
+            5,
+            3,
+            500_000,
+            500_000,
+            '2'
+        );
+
+        vm.stopPrank();
+    }
+
+    /// @dev test ownership transfer
+    function testOwnershipTransfer() public {
+        vm.startPrank(owner);
+
+        /// @dev Testing ownership transfer
+        token.transferOwnership(userA);
+        assertEq(token.owner(), userA, 'Ownership not transferred');
+
+        /// @dev Testing transfer to zero address
+        vm.startPrank(userA);
+        vm.expectRevert('Ownable: new owner is the zero address');
+        token.transferOwnership(address(0));
+
+        /// @dev Testing renounceOwnership
+        token.renounceOwnership();
+        assertEq(token.owner(), address(0), 'Ownership not renounced');
+
+        vm.stopPrank();
+    }
+
+    /// @dev test UUPSUpgradeable modifiers
+    function testUUPSUpgradeableModifiers() public {
+        vm.startPrank(owner);
+
+        /// @dev create a new implementation for upgrade
+        Token newImplementation = new Token();
+
+        /// @dev test direct call (not via proxy) - should fail
+        vm.expectRevert('Function must be called through delegatecall');
+        token.upgradeTo(address(newImplementation));
+
+        /// @dev simulate a call via proxy
+        address proxyAddress = address(0x123);
+        vm.etch(proxyAddress, address(token).code); // copy token code to proxy
+        Token proxyToken = Token(payable(proxyAddress));
+
+        /// @dev a mock for testing
+        vm.mockCall(
+            proxyAddress,
+            abi.encodeWithSelector(UUPSUpgradeable.proxiableUUID.selector),
+            abi.encode(
+                bytes32(
+                    0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+                )
+            )
+        );
+
+        /// @dev Mock for _getImplementation
+        vm.mockCall(
+            proxyAddress,
+            abi.encodeWithSelector(bytes4(keccak256('_getImplementation()'))),
+            abi.encode(address(token))
+        );
+
+        /// @dev now the call should fail with the correct error
+        vm.expectRevert('Function must be called through active proxy');
+        proxyToken.upgradeTo(address(newImplementation));
+
+        vm.stopPrank();
+    }
+
+    /// @dev test _msgSender() and _msgData()
+    function testContextUpgradeable() public {
+        vm.startPrank(owner);
+
+        // Teste _msgSender() via transferência
+        token.transfer(userA, 100);
+
+        // Teste _msgData() via chamada com dados
+        (bool success, ) = address(token).call(
+            abi.encodeWithSelector(token.transfer.selector, userA, 100)
+        );
+        assertTrue(success, 'Call failed');
+
+        vm.stopPrank();
+    }
+
+    /// @dev helper function to setup mocks
+    function _setupMocks(address factoryAddress) private {
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
+            abi.encode(factoryAddress)
+        );
+
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
+            abi.encode(WBNB)
+        );
+
+        address pairAddress = makeAddr('pair');
+        vm.mockCall(
+            factoryAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('createPair(address,address)'))
+            ),
+            abi.encode(pairAddress)
+        );
+    }
+
+    function testIsSwapAndLiquifyEnabled() public {
+        vm.startPrank(owner);
+
+        /// @dev Testing initial state
+        assertFalse(
+            token.isSwapAndLiquifyEnabled(),
+            'Should be disabled initially'
+        );
+
+        /// @dev Testing after enabling
+        token.setSwapAndLiquifyEnabled(true);
+        assertTrue(token.isSwapAndLiquifyEnabled(), 'Should be enabled');
+
+        vm.stopPrank();
+    }
+
+    /// @dev test swapAndLiquify complete
+    function testSwapAndLiquifyComplete() public {
+        vm.startPrank(owner);
+
+        /// @dev Setup
+        address factoryAddress = makeAddr('factory');
+        _setupMocks(factoryAddress);
+        token.configureUniswap(routerAddress);
+        token.setSwapAndLiquifyEnabled(true);
+
+        /// @dev Mock for swap and addLiquidity
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(
+                IUniswapV2Router02
+                    .swapExactTokensForETHSupportingFeeOnTransferTokens
+                    .selector
+            ),
+            abi.encode()
+        );
+
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(IUniswapV2Router02.addLiquidityETH.selector),
+            abi.encode(0, 0, 0)
+        );
+
+        /// @dev Get current maxTxAmount
+        uint256 maxTx = token.maxTxAmount();
+
+        /// @dev Test with exact amount of numTokensSellToAddToLiquidity
+        uint256 exactAmount = token.numTokensSellToAddToLiquidity();
+        token.transfer(address(token), exactAmount);
+
+        /// @dev Test with maximum allowed value
+        token.transfer(address(token), maxTx);
+
+        /// @dev Test with value above the maximum (should fail)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MaxTransactionExceeded.selector,
+                maxTx,
+                maxTx + 1
+            )
+        );
+        token.transfer(address(token), maxTx + 1);
+
+        vm.stopPrank();
     }
 }

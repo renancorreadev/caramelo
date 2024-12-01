@@ -55,6 +55,9 @@ error NumTokensSellToAddToLiquidityFailed(
     uint256 currentAmount,
     uint256 newAmount
 );
+error UpgradesAreFrozen();
+error InvalidImplementation();
+error TokenBalanceZero();
 
 contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     uint256 private constant MAX = ~uint256(0);
@@ -85,6 +88,7 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     address public uniswapV2Pair;
 
     string public contractVersion;
+    bool private _upgradesFrozen;
 
     // Eventos
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -180,17 +184,11 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         return _symbol;
     }
 
-    /**
-     * @dev Retorna o saldo de reflection de um endereço, considerando as taxas refletidas.
-     * O valor refletido é obtido através da conversão do saldo refletido (_rOwned) de volta para tokens.
-     */
     function reflectionBalanceOf(
         address account
     ) public view returns (uint256) {
         require(account != address(0), 'Zero address');
-
-        // Retorna o saldo refletido do endereço fornecido
-        return _rOwned[account] / _getRate(); // Divide pelo rate de reflection para obter o valor real do saldo
+        return _rOwned[account] / _getRate();
     }
 
     function decimals() public view returns (uint8) {
@@ -210,6 +208,10 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     function balanceOf(address account) public view returns (uint256) {
         return _rOwned[account] / _getRate();
+    }
+
+    function freezeUpgrades() external onlyOwner {
+        _upgradesFrozen = true;
     }
 
     function transfer(address recipient, uint256 amount) public returns (bool) {
@@ -399,10 +401,14 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function isSwapAndLiquifyEnabled() external view returns (bool) {
-        return inSwapAndLiquify;
+        return swapAndLiquifyEnabled; 
     }
 
     function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
+        if (contractTokenBalance == 0) {
+            revert TokenBalanceZero();
+        }
+
         uint256 half = contractTokenBalance / 2;
         uint256 otherHalf = contractTokenBalance - half;
 
@@ -480,12 +486,33 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _getRate() private view returns (uint256) {
+        require(_tTotal > 0, "Total supply must be greater than zero");
         return _rTotal / _tTotal;
+    }
+
+    function getImplementation() external view returns (address) {
+        return _getImplementation();
     }
 
     function _authorizeUpgrade(
         address newImplementation
-    ) internal override onlyOwner {}
+    ) internal view override onlyOwner {
+        if (_upgradesFrozen) {
+            revert UpgradesAreFrozen();
+        }
 
+        if (newImplementation.code.length == 0) {
+            revert InvalidImplementation();
+        }
+
+        try UUPSUpgradeable(newImplementation).proxiableUUID() returns (bytes32 uuid) {
+            if (uuid != bytes32(0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)) {
+                revert InvalidImplementation();
+            }
+        } catch {
+            revert InvalidImplementation();
+        }
+    }
+    
     receive() external payable {}
 }
