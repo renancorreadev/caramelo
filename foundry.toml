@@ -1,13 +1,17 @@
 [profile.default]
-src = 'contracts'
-out = 'build'
-libs = ['node_modules', 'lib']
+src = "contracts"
+out = "build"
+libs = ["node_modules", "lib"]
 via_ir = true
 optimizer = true
 optimizer_runs = 400
-test = 'test'
-cache_path  = 'cache_forge'
-solc_version = '0.8.22'
-rpc_endpoints = { bsc = "https://bsc-mainnet.infura.io/v3/60786ed4ffd74c75b4b0bb369cde55f7" }
+test = "test"
+cache_path = "cache_forge"
+solc_version = "0.8.22"
+etherscan_api_key = "U2JFJ4NTKEJ38TI7ZRXI6E373972HEAJ9M"
+
 [rpc_endpoints]
+bsc = "https://bsc-mainnet.infura.io/v3/60786ed4ffd74c75b4b0bb369cde55f7"
 bsc_testnet = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+
+

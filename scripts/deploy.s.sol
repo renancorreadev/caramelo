@@ -2,7 +2,8 @@
 pragma solidity ^0.8.2;
 
 import {Script} from "forge-std/Script.sol";
-import {Token} from "../src/Token.sol";
+import {Token} from "../contracts/Token.sol";
+import {console} from 'forge-std/console.sol';
 
 contract DeployCaramelo is Script {
     function run() external {
@@ -21,7 +22,8 @@ contract DeployCaramelo is Script {
         uint256 numTokensSellToAddToLiquidity = 5000; // Ajuste conforme necessário
 
         // Deploy do contrato
-        CarameloV2 caramelo = new CarameloV2();
+        Token caramelo = new Token();
+
         caramelo.initialize(
             tokenName,
             tokenSymbol,
@@ -30,7 +32,7 @@ contract DeployCaramelo is Script {
             liquidityFee,
             burnFee,
             maxTxAmount,
-            numTokensSellToAddToLiquidity,
+            numTokensSellToAddToLiquidity
         );
 
         console.log("Token deployed at:", address(caramelo));
@@ -38,3 +40,11 @@ contract DeployCaramelo is Script {
         vm.stopBroadcast();
     }
 }
+
+
+/** 
+forge verify-contract --chain-id 97 --watch \
+--compiler-version "v0.8.2+commit.661d1103" \
+0xb60CDB1Cba0245B9db7188F0CEe4979EB8a52fe7 contracts/Token.sol:Token
+
+ */
