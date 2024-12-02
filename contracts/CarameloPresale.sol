@@ -2,6 +2,7 @@
 pragma solidity ^0.8.22;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 error InsufficientFunds(uint256 required, uint256 available);
 error InvalidPhase();
@@ -17,8 +18,8 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract CarameloPreSale is Ownable {
-    // Fases da pré-venda
+contract CarameloPreSale is Ownable, ReentrancyGuard {
+    /// @dev Phases of Pre Sale
     enum Phase { Phase1, Phase2, Phase3, Ended }
 
     Phase public currentPhase;
@@ -26,7 +27,8 @@ contract CarameloPreSale is Ownable {
     uint256 public tokensAvailable;
     uint256 public tokensSold;
 
-    mapping(Phase => uint256) public phaseRates; // 1 BNB = X tokens por fase
+    /// @dev // 1 BNB = X tokens por fase
+    mapping(Phase => uint256) public phaseRates; 
     uint256 public totalBNBReceived;
 
     bool public preSaleInitialized;
@@ -68,7 +70,7 @@ contract CarameloPreSale is Ownable {
         emit PreSaleInitialized(tokensAvailable);
     }
 
-    function buyTokens() public payable onlyActivePreSale {
+    function buyTokens() public payable nonReentrant onlyActivePreSale {
         if (msg.value == 0) revert InsufficientFunds(1, msg.value);
 
         uint256 rate = phaseRates[currentPhase];
@@ -101,7 +103,7 @@ contract CarameloPreSale is Ownable {
         emit PreSaleEnded();
     }
 
-    function withdrawFunds() external onlyOwner {
+    function withdrawFunds() external nonReentrant onlyOwner {
         uint256 balance = address(this).balance;
         if (balance == 0) revert InsufficientFunds(1, balance);
 
@@ -117,7 +119,6 @@ contract CarameloPreSale is Ownable {
 
    
     receive() external payable {
-        // Apenas redireciona para buyTokens
         buyTokens();
     }
 }

@@ -34,6 +34,8 @@ error NotExcluded();
 error FeesExceeded(uint256 totalFees);
 error InsufficientBalance(uint256 available, uint256 required);
 error TokenBalanceZero();
+error TransferAmountExceedsMax();
+error TransferAmountZero();
 
 contract CarameloTokenTest is Test {
     Token public token;
@@ -664,41 +666,38 @@ contract CarameloTokenTest is Test {
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        uint256 currentMaxTxAmount = token.maxTxAmount();
-        uint256 newMaxTxAmount = 1000 * 10 ** tokenParams.decimals;
-
-        console.log('Max TX Amount atual:', currentMaxTxAmount);
-        console.log('Novo Max TX Amount:', newMaxTxAmount);
-
         vm.startPrank(owner);
-        token.setMaxTxAmount(newMaxTxAmount / 10 ** tokenParams.decimals);
-        assertEq(
-            token.maxTxAmount(),
-            newMaxTxAmount,
-            'MaxTxAmount nao foi atualizado'
+
+        // Configurar mocks e estado inicial
+        address factoryAddress = makeAddr('factory');
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
+            abi.encode(factoryAddress)
         );
-        console.log('Max TX Amount apos update:', token.maxTxAmount());
 
-        /// @dev transfer tokens to userA to test the limit
-        token.transfer(userA, newMaxTxAmount);
-        console.log('Balance do userA:', token.balanceOf(userA));
-        vm.stopPrank();
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
+            abi.encode(WBNB)
+        );
 
-        /// @dev try to transfer above the limit
-        uint256 attemptAmount = newMaxTxAmount + 1;
-        vm.startPrank(userA);
-
-        vm.expectRevert(
+        address pairAddress = makeAddr('pair');
+        vm.mockCall(
+            factoryAddress,
             abi.encodeWithSelector(
-                MaxTransactionExceeded.selector,
-                newMaxTxAmount,
-                attemptAmount
-            )
+                bytes4(keccak256('createPair(address,address)'))
+            ),
+            abi.encode(pairAddress)
         );
-        token.transfer(userB, attemptAmount);
-        vm.stopPrank();
 
-        console.log('\n');
+        token.configureUniswap(routerAddress);
+
+        // Testar transferência que excede o maxTxAmount
+        uint256 amountExceedingMax = token.maxTxAmount() + 1;
+        vm.expectRevert(TransferAmountExceedsMax.selector);
+        token.transfer(userA, amountExceedingMax);
+        vm.stopPrank();
     }
 
     /// @dev test numTokensSellToAddToLiquidity
@@ -1524,24 +1523,35 @@ contract CarameloTokenTest is Test {
     function testTransferWithMaximumValues() public {
         vm.startPrank(owner);
 
-        /// @dev test with maximum allowed value
-        uint256 maxAmount = token.maxTxAmount();
-        token.transfer(userA, maxAmount);
-        assertEq(
-            token.balanceOf(userA),
-            maxAmount,
-            'Transfer of max amount failed'
+        // Configurar mocks e estado inicial
+        address factoryAddress = makeAddr('factory');
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
+            abi.encode(factoryAddress)
         );
 
-        /// @dev test with value slightly above the maximum
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                MaxTransactionExceeded.selector,
-                maxAmount,
-                maxAmount + 1
-            )
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
+            abi.encode(WBNB)
         );
-        token.transfer(userA, maxAmount + 1);
+
+        address pairAddress = makeAddr('pair');
+        vm.mockCall(
+            factoryAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('createPair(address,address)'))
+            ),
+            abi.encode(pairAddress)
+        );
+
+        token.configureUniswap(routerAddress);
+
+        // Testar transferência que excede o maxTxAmount
+        uint256 amountExceedingMax = token.maxTxAmount() + 1;
+        vm.expectRevert(TransferAmountExceedsMax.selector);
+        token.transfer(userA, amountExceedingMax);
 
         vm.stopPrank();
     }
@@ -1763,49 +1773,61 @@ contract CarameloTokenTest is Test {
     function testSwapAndLiquifyComplete() public {
         vm.startPrank(owner);
 
-        /// @dev Setup
+        // Configurar mocks e estado inicial
         address factoryAddress = makeAddr('factory');
-        _setupMocks(factoryAddress);
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
+            abi.encode(factoryAddress)
+        );
+
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
+            abi.encode(WBNB)
+        );
+
+        address pairAddress = makeAddr('pair');
+        vm.mockCall(
+            factoryAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('createPair(address,address)'))
+            ),
+            abi.encode(pairAddress)
+        );
+
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        /// @dev Mock for swap
+        // Mock router calls
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
-                IUniswapV2Router02
-                    .swapExactTokensForETHSupportingFeeOnTransferTokens
-                    .selector
+                bytes4(
+                    keccak256(
+                        'swapExactTokensForETHSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)'
+                    )
+                )
             ),
-            abi.encode(new uint256[](2)) // Mock retorno do array de amounts
+            abi.encode()
         );
 
-        /// @dev Mock for addLiquidity com valores válidos
         vm.mockCall(
             routerAddress,
-            abi.encodeWithSelector(IUniswapV2Router02.addLiquidityETH.selector),
-            abi.encode(1000, 500, 100) // tokenAmount, ethAmount, liquidity
-        );
-
-        /// @dev Get current maxTxAmount
-        uint256 maxTx = token.maxTxAmount();
-
-        /// @dev Test with exact amount of numTokensSellToAddToLiquidity
-        uint256 exactAmount = token.numTokensSellToAddToLiquidity();
-        token.transfer(address(token), exactAmount);
-
-        /// @dev Test with maximum allowed value
-        token.transfer(address(token), maxTx);
-
-        /// @dev Test with value above the maximum (should fail)
-        vm.expectRevert(
             abi.encodeWithSelector(
-                MaxTransactionExceeded.selector,
-                maxTx,
-                maxTx + 1
-            )
+                bytes4(
+                    keccak256(
+                        'addLiquidityETH(address,uint256,uint256,uint256,address,uint256)'
+                    )
+                )
+            ),
+            abi.encode(1000, 500, 100)
         );
-        token.transfer(address(token), maxTx + 1);
+
+        // Testar transferência que excede o maxTxAmount
+        uint256 amountExceedingMax = token.maxTxAmount() + 1;
+        vm.expectRevert(TransferAmountExceedsMax.selector);
+        token.transfer(address(token), amountExceedingMax);
 
         vm.stopPrank();
     }

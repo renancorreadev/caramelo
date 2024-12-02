@@ -39,6 +39,7 @@ interface IUniswapV2Factory {
 }
 
 // Custom Errors
+error AlreadyInitialized();
 error ZeroAddress();
 error InvalidAmount();
 error AlreadyExcluded();
@@ -60,6 +61,9 @@ error UpgradesAreFrozen();
 error InvalidImplementation();
 error TokenBalanceZero();
 error LiquidityAdditionFailed();
+error TransferAmountZero();
+error TransferAmountExceedsMax();
+
 
 contract Token is
     Initializable,
@@ -155,6 +159,7 @@ contract Token is
         uint256 _numTokensSellToAddToLiquidity,
         string memory version
     ) public initializer {
+        if (owner() != address(0)) revert AlreadyInitialized();
         if (_taxFee + _liquidityFee + _burnFee > 100) {
             revert FeesExceeded(_taxFee + _liquidityFee + _burnFee);
         }
@@ -344,15 +349,12 @@ contract Token is
         address recipient,
         uint256 amount
     ) private {
-        if (sender == address(0) || recipient == address(0)) {
-            revert ZeroAddress();
-        }
-        if (amount == 0) {
-            revert InvalidAmount();
-        }
-        if (amount > maxTxAmount) {
-            revert MaxTransactionExceeded(maxTxAmount, amount);
-        }
+        if (sender == address(0)) revert ZeroAddress();
+        if (recipient == address(0)) revert ZeroAddress();
+        if (amount == 0) revert TransferAmountZero();
+
+        if (maxTxAmount > 0 && amount > maxTxAmount)
+            revert TransferAmountExceedsMax();
 
         uint256 contractTokenBalance = balanceOf(address(this));
 
@@ -423,9 +425,7 @@ contract Token is
         return swapAndLiquifyEnabled;
     }
 
-    function swapAndLiquify(
-        uint256 contractTokenBalance
-    ) private lockTheSwap {
+    function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
         if (contractTokenBalance == 0) {
             revert TokenBalanceZero();
         }

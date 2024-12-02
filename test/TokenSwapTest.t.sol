@@ -22,6 +22,8 @@ error UniswapAlreadyConfigured();
 error ZeroAddress();
 error AlreadyExcluded();
 error InvalidAmount();
+error TransferAmountExceedsMax();
+error TransferAmountZero();
 
 contract TokenSwapTest is Test {
     Token public token;
@@ -652,9 +654,9 @@ contract TokenSwapTest is Test {
         uint256 tokenAmount = token.numTokensSellToAddToLiquidity();
         token.transfer(address(token), tokenAmount);
 
-        /// @dev Test liquidity addition with zero ETH
+        /// @dev Test liquidity addition with zero token amount
         vm.deal(address(token), 1 ether);
-        vm.expectRevert(InvalidAmount.selector);
+        vm.expectRevert(TransferAmountZero.selector);
         token.transfer(address(token), 0);
 
         vm.stopPrank();

@@ -3,7 +3,8 @@
   "scripts": {
     "compile": "forge compile",
     "test": "forge test --fork-url https://bsc-dataseed.binance.org/ -vv",
-    "deploy": "forge script scripts/Deploy.s.sol:DeployCaramelo --rpc-url https://bsc-dataseed.binance.org/ --broadcast",
+    "deploy": "forge script scripts/Deploy.s.sol:DeployCaramelo --rpc-url https://data-seed-prebsc-2-s2.bnbchain.org:8545 --broadcast",
+    "deploy-testnet": "forge script scripts/Deploy.s.sol:DeployCaramelo --rpc-url https://data-seed-prebsc-2-s2.bnbchain.org:8545 --broadcast",
     "test-full": "forge test --fork-url https://bsc-dataseed.binance.org/ -vvvv",
     "coverage": "forge coverage --no-match-coverage 'test/.*.sol'",
     "clean": "rm -rf node_modules",
