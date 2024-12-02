@@ -3,16 +3,13 @@ import '@nomicfoundation/hardhat-toolbox';
 import '@openzeppelin/hardhat-upgrades';
 import env from 'dotenv';
 import '@nomicfoundation/hardhat-foundry';
+import 'solidity-docgen';
 
 env.config();
 
 const config: HardhatUserConfig = {
-  solidity: '0.8.20',
+  solidity: '0.8.22',
   networks: {
-    besu: {
-      url: process.env.JSON_RPC_URL,
-      accounts: [process.env.PRIVATE_KEY as string],
-    },
     mumbai: {
       url: process.env.POLYGON_RPC_URL,
       accounts: [process.env.PRIVATE_KEY as string],
@@ -24,6 +21,9 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'typechain',
     target: 'ethers-v6',
+  },
+  docgen: {
+    outputDir: 'docs',
   },
 };
 

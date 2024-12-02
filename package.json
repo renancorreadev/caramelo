@@ -26,15 +26,17 @@
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-prettier": "4.2.1",
     "eslint-plugin-promise": "6.1.1",
-    "hardhat": "2.19.1",
+    "hardhat": "^2.22.16",
     "prettier": "2.8.8",
+    "ts-node": "^10.9.2",
     "typescript": "5.3.3"
   },
   "dependencies": {
     "@ethersproject/providers": "5.7.2",
     "@openzeppelin/contracts": "5.0.0",
     "@openzeppelin/upgrades-core": "1.31.1",
-    "ethers": "6.8.1"
+    "ethers": "6.8.1",
+    "solidity-docgen": "^0.6.0-beta.36"
   },
-  "packageManager": "pnpm@9.13.2+sha512.88c9c3864450350e65a33587ab801acf946d7c814ed1134da4a924f6df5a2120fd36b46aab68f7cd1d413149112d53c7db3a4136624cfd00ff1846a0c6cef48a"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
