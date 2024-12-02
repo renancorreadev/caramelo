@@ -1742,30 +1742,7 @@ contract CarameloTokenTest is Test {
         vm.stopPrank();
     }
 
-    /// @dev helper function to setup mocks
-    function _setupMocks(address factoryAddress) private {
-        vm.mockCall(
-            routerAddress,
-            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
-            abi.encode(factoryAddress)
-        );
-
-        vm.mockCall(
-            routerAddress,
-            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
-            abi.encode(WBNB)
-        );
-
-        address pairAddress = makeAddr('pair');
-        vm.mockCall(
-            factoryAddress,
-            abi.encodeWithSelector(
-                bytes4(keccak256('createPair(address,address)'))
-            ),
-            abi.encode(pairAddress)
-        );
-    }
-
+    /// @dev test isSwapAndLiquifyEnabled
     function testIsSwapAndLiquifyEnabled() public {
         vm.startPrank(owner);
 
@@ -1792,7 +1769,7 @@ contract CarameloTokenTest is Test {
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        /// @dev Mock for swap and addLiquidity
+        /// @dev Mock for swap
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
@@ -1800,13 +1777,14 @@ contract CarameloTokenTest is Test {
                     .swapExactTokensForETHSupportingFeeOnTransferTokens
                     .selector
             ),
-            abi.encode()
+            abi.encode(new uint256[](2)) // Mock retorno do array de amounts
         );
 
+        /// @dev Mock for addLiquidity com valores válidos
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(IUniswapV2Router02.addLiquidityETH.selector),
-            abi.encode(0, 0, 0)
+            abi.encode(1000, 500, 100) // tokenAmount, ethAmount, liquidity
         );
 
         /// @dev Get current maxTxAmount
@@ -1830,5 +1808,28 @@ contract CarameloTokenTest is Test {
         token.transfer(address(token), maxTx + 1);
 
         vm.stopPrank();
+    }
+    /// @dev helper function to setup mocks
+    function _setupMocks(address factoryAddress) private {
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('factory()'))),
+            abi.encode(factoryAddress)
+        );
+
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(bytes4(keccak256('WBNB()'))),
+            abi.encode(WBNB)
+        );
+
+        address pairAddress = makeAddr('pair');
+        vm.mockCall(
+            factoryAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('createPair(address,address)'))
+            ),
+            abi.encode(pairAddress)
+        );
     }
 }

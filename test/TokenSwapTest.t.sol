@@ -6,13 +6,22 @@ import {console} from 'forge-std/console.sol';
 import {Token} from '../contracts/Token.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {IUniswapV2Router02} from '../contracts/interfaces/UniswapV2Interfaces.sol';
+
+/// @notice Este contrato de teste é utilizado para verificar a funcionalidade de swap e liquidez do contrato Token.
+/// @dev Utiliza a biblioteca forge-std para testes e mocks. O contrato testa a funcionalidade de swap e liquidez,
+/// incluindo a configuração do Uniswap, habilitação de swap e liquidez, e verificação de transações.
+/// @custom:error ContractLocked Indica que o contrato está bloqueado.
+/// @custom:error UniswapAlreadyConfigured Indica que o Uniswap já foi configurado.
+/// @custom:error ZeroAddress Indica que um endereço zero foi fornecido.
+/// @custom:error AlreadyExcluded Indica que o endereço já está excluído.
+/// @custom:error InvalidAmount Indica que um valor inválido foi fornecido.
+
 // Custom Errors
 error ContractLocked();
 error UniswapAlreadyConfigured();
 error ZeroAddress();
 error AlreadyExcluded();
 error InvalidAmount();
-
 
 contract TokenSwapTest is Test {
     Token public token;
@@ -46,38 +55,41 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test decimals
     function testDecimals() public view {
         assertEq(token.decimals(), 6, 'Decimals should be 6');
     }
 
+    /// @dev Test swap and liquify enabled
     function testSwapAndLiquifyEnabled() public {
         vm.startPrank(owner);
 
-        // Test initial state
+        /// @dev Test initial state
         assertFalse(
             token.swapAndLiquifyEnabled(),
             'Should be disabled initially'
         );
 
-        // Enable
+        /// @dev Enable
         token.setSwapAndLiquifyEnabled(true);
         assertTrue(token.swapAndLiquifyEnabled(), 'Should be enabled');
 
-        // Try to enable again (should revert)
+        /// @dev Try to enable again (should revert)
         vm.expectRevert('Swap is already enabled');
         token.setSwapAndLiquifyEnabled(true);
 
-        // Disable
+        /// @dev Disable
         token.setSwapAndLiquifyEnabled(false);
         assertFalse(token.swapAndLiquifyEnabled(), 'Should be disabled');
 
-        // Try to disable again (should revert)
+        /// @dev Try to disable again (should revert)
         vm.expectRevert('Swap is already disabled');
         token.setSwapAndLiquifyEnabled(false);
 
         vm.stopPrank();
     }
 
+    /// @dev Test swap and liquify trigger
     function testSwapAndLiquifyTrigger() public {
         vm.startPrank(owner);
 
@@ -108,13 +120,28 @@ contract TokenSwapTest is Test {
             abi.encode(pairAddress)
         );
 
+        // Mock para getAmountsOut
+        address[] memory path = new address[](2);
+        path[0] = address(token);
+        path[1] = WETH;
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1000;
+        amounts[1] = 500;
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('getAmountsOut(uint256,address[])'))
+            ),
+            abi.encode(amounts)
+        );
+
         // Agora configure o router
         token.configureUniswap(routerAddress);
 
         // Enable swap
         token.setSwapAndLiquifyEnabled(true);
 
-        // Mock router swap calls
+        // Mock router swap calls com valores válidos
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
@@ -124,7 +151,7 @@ contract TokenSwapTest is Test {
                     )
                 )
             ),
-            abi.encode()
+            abi.encode(amounts)
         );
 
         vm.mockCall(
@@ -136,11 +163,14 @@ contract TokenSwapTest is Test {
                     )
                 )
             ),
-            abi.encode(0, 0, 0)
+            abi.encode(1000, 500, 100) // tokenAmount, ethAmount, liquidity
         );
 
         // Primeiro, aprove o router para gastar tokens
         token.approve(routerAddress, type(uint256).max);
+
+        // Add ETH to contract
+        vm.deal(address(token), 1 ether);
 
         // Transfer enough tokens to trigger swap and liquify
         uint256 triggerAmount = token.numTokensSellToAddToLiquidity();
@@ -153,10 +183,11 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test swap and liquify disabled
     function testSwapAndLiquifyDisabled() public {
         vm.startPrank(owner);
 
-        // Setup mocks primeiro
+        /// @dev Setup mocks primeiro
         address factoryAddress = makeAddr('factory');
         vm.mockCall(
             routerAddress,
@@ -179,6 +210,21 @@ contract TokenSwapTest is Test {
             abi.encode(pairAddress)
         );
 
+        // Mock para getAmountsOut
+        address[] memory path = new address[](2);
+        path[0] = address(token);
+        path[1] = WETH;
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1000;
+        amounts[1] = 500;
+        vm.mockCall(
+            routerAddress,
+            abi.encodeWithSelector(
+                bytes4(keccak256('getAmountsOut(uint256,address[])'))
+            ),
+            abi.encode(amounts)
+        );
+
         // Agora configure o router
         token.configureUniswap(routerAddress);
 
@@ -190,7 +236,7 @@ contract TokenSwapTest is Test {
         token.setSwapAndLiquifyEnabled(false);
         assertFalse(token.swapAndLiquifyEnabled(), 'Swap should be disabled');
 
-        // Mock router calls para evitar swap
+        // Mock router calls com valores válidos
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
@@ -200,7 +246,7 @@ contract TokenSwapTest is Test {
                     )
                 )
             ),
-            abi.encode()
+            abi.encode(amounts)
         );
 
         vm.mockCall(
@@ -212,7 +258,7 @@ contract TokenSwapTest is Test {
                     )
                 )
             ),
-            abi.encode(0, 0, 0)
+            abi.encode(1000, 500, 100) // tokenAmount, ethAmount, liquidity
         );
 
         // Primeiro, aprove o router
@@ -228,13 +274,6 @@ contract TokenSwapTest is Test {
         // This transfer should not trigger swap because it's disabled
         uint256 amount = 100 * 10 ** token.decimals();
 
-        // Mock WETH call para evitar swap
-        vm.mockCall(
-            routerAddress,
-            abi.encodeWithSelector(bytes4(keccak256('WETH()'))),
-            abi.encode(address(0)) // Retorna address(0) para evitar swap
-        );
-
         token.transfer(userA, amount);
 
         // Verificar se a transferência foi bem sucedida
@@ -247,10 +286,11 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test liquidity mechanism with router
     function testLiquidityMechanismWithRouter() public {
         vm.startPrank(owner);
 
-        // Setup mocks primeiro
+        /// @dev Setup mocks primeiro
         address factoryAddress = makeAddr('factory');
         vm.mockCall(
             routerAddress,
@@ -273,13 +313,13 @@ contract TokenSwapTest is Test {
             abi.encode(pairAddress)
         );
 
-        // Agora configure o router
+        /// @dev Now configure the router
         token.configureUniswap(routerAddress);
 
-        // Enable swap and liquify
+        /// @dev Enable swap and liquify
         token.setSwapAndLiquifyEnabled(true);
 
-        // Mock liquidity addition
+        /// @dev Mock liquidity addition
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
@@ -304,21 +344,21 @@ contract TokenSwapTest is Test {
             abi.encode(1000, 1 ether, 500) // Mock return values
         );
 
-        // Aprove o router
+        /// @dev Aprove the router
         token.approve(routerAddress, type(uint256).max);
 
-        // Transfer amount that should trigger liquidity mechanism
+        /// @dev Transfer amount that should trigger liquidity mechanism
         uint256 triggerAmount = token.numTokensSellToAddToLiquidity();
         token.transfer(address(token), triggerAmount);
 
-        // Add ETH to contract for liquidity
+        /// @dev Add ETH to contract for liquidity
         vm.deal(address(token), 1 ether);
 
-        // This transfer should trigger the liquidity mechanism
+        /// @dev This transfer should trigger the liquidity mechanism
         uint256 amount = 100 * 10 ** token.decimals();
         token.transfer(userA, amount);
 
-        // Verificar se a transferência foi bem sucedida
+        /// @dev Verify the transfer was successful
         assertEq(token.balanceOf(userA), amount, 'Transfer failed');
 
         vm.stopPrank();
@@ -327,15 +367,15 @@ contract TokenSwapTest is Test {
     function testTransferEdgeCases() public {
         vm.startPrank(owner);
 
-        // Test transfer to zero address
+        /// @dev Test transfer to zero address
         vm.expectRevert();
         token.transfer(address(0), 100);
 
-        // Test transfer with zero amount
+        /// @dev Test transfer with zero amount
         vm.expectRevert();
         token.transfer(userA, 0);
 
-        // Test transfer exceeding maxTxAmount
+        /// @dev Test transfer exceeding maxTxAmount
         uint256 maxAmount = token.maxTxAmount() + 1;
         vm.expectRevert();
         token.transfer(userA, maxAmount);
@@ -343,18 +383,19 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test authorize upgrade edge cases
     function testAuthorizeUpgradeEdgeCases() public {
         vm.startPrank(owner);
 
-        // Test with zero address
+        /// @dev Test with zero address
         vm.expectRevert();
         token.upgradeTo(address(0));
 
-        // Test with non-contract address
+        /// @dev Test with non-contract address
         vm.expectRevert();
         token.upgradeTo(userA);
 
-        // Test after freezing upgrades
+        /// @dev Test after freezing upgrades
         token.freezeUpgrades();
         vm.expectRevert();
         token.upgradeTo(address(this));
@@ -362,10 +403,11 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test lockTheSwap
     function testLockTheSwap() public {
         vm.startPrank(owner);
 
-        // Setup para swap
+        /// @dev Setup for swap
         address factoryAddress = makeAddr('factory');
         vm.mockCall(
             routerAddress,
@@ -388,11 +430,11 @@ contract TokenSwapTest is Test {
             abi.encode(pairAddress)
         );
 
-        // Configure e habilite swap
+        /// @dev Configure and enable swap
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        // Mock para fazer o swap travar com revert
+        /// @dev Mock to make the swap lock with revert
         vm.mockCallRevert(
             routerAddress,
             abi.encodeWithSelector(
@@ -405,11 +447,11 @@ contract TokenSwapTest is Test {
             abi.encodeWithSelector(ContractLocked.selector)
         );
 
-        // Teste reentrada durante swap
+        /// @dev Test reentry during swap
         uint256 triggerAmount = token.numTokensSellToAddToLiquidity();
         token.transfer(address(token), triggerAmount);
 
-        // Tente fazer outra transferência durante o swap (deve falhar)
+        /// @dev Try to make another transfer during the swap (should fail)
         vm.expectRevert(abi.encodeWithSelector(ContractLocked.selector));
         token.transfer(userA, 100);
 
@@ -419,7 +461,7 @@ contract TokenSwapTest is Test {
     function testSwapFailures() public {
         vm.startPrank(owner);
 
-        // Setup router mas com mocks que falham
+        /// @dev Setup router but with mocks that fail
         address factoryAddress = makeAddr('factory');
         vm.mockCall(
             routerAddress,
@@ -433,17 +475,17 @@ contract TokenSwapTest is Test {
             abi.encode(WETH)
         );
 
-        // Mock createPair para falhar
+        /// @dev Mock createPair to fail
         vm.mockCallRevert(
             factoryAddress,
             abi.encodeWithSelector(
                 bytes4(keccak256('createPair(address,address)'))
             ),
-            'Failed to create pair' // Ajustado para string
+            'Failed to create pair'
         );
 
-        // Configure router (deve falhar)
-        vm.expectRevert('Failed to create pair'); // Ajustado para string
+        /// @dev Configure router (should fail)
+        vm.expectRevert('Failed to create pair');
         token.configureUniswap(routerAddress);
 
         vm.stopPrank();
@@ -452,7 +494,7 @@ contract TokenSwapTest is Test {
     function testExcludeFromFeeEdgeCases() public {
         vm.startPrank(owner);
 
-        // Teste excluir endereço já excluído
+        /// @dev Test exclude address already excluded
         token.excludeFromFee(userA);
         vm.expectRevert(abi.encodeWithSelector(AlreadyExcluded.selector));
         token.excludeFromFee(userA);
@@ -463,13 +505,13 @@ contract TokenSwapTest is Test {
     function testSwapAndLiquifyMechanismEdgeCases() public {
         vm.startPrank(owner);
 
-        // Setup
+        /// @dev Setup
         address factoryAddress = makeAddr('factory');
         setupMocks(factoryAddress);
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        // Mock para as funções de swap e liquidity
+        /// @dev Mock for swap and liquidity functions
         vm.mockCall(
             routerAddress,
             abi.encodeWithSelector(
@@ -486,7 +528,7 @@ contract TokenSwapTest is Test {
             abi.encode(1000, 1 ether, 500)
         );
 
-        // Teste 1: Transferência abaixo do limite de swap
+        /// @dev Test 1: Transfer below swap limit
         uint256 smallAmount = token.numTokensSellToAddToLiquidity() - 1;
         uint256 balanceBefore = token.balanceOf(address(token));
         token.transfer(address(token), smallAmount);
@@ -496,7 +538,7 @@ contract TokenSwapTest is Test {
             'Small transfer should not trigger swap'
         );
 
-        // Teste 2: Desabilitar swap e tentar transferência grande
+        /// @dev Test 2: Disable swap and try large transfer
         token.setSwapAndLiquifyEnabled(false);
         uint256 largeAmount = token.maxTxAmount() / 2;
         balanceBefore = token.balanceOf(address(token));
@@ -507,16 +549,16 @@ contract TokenSwapTest is Test {
             'Transfer with disabled swap should not trigger swap'
         );
 
-        // Teste 3: Transferência do par
+        /// @dev Test 3: Transfer from pair
         address pair = token.uniswapV2Pair();
         uint256 pairAmount = 100 * 10 ** token.decimals();
 
-        // Transferir tokens para o par
+        /// @dev Transfer tokens to pair
         token.transfer(pair, pairAmount);
 
         vm.stopPrank();
 
-        // Transferir do par para userA
+        /// @dev Transfer from pair to userA
         vm.startPrank(pair);
         balanceBefore = token.balanceOf(userA);
         token.transfer(userA, pairAmount / 2);
@@ -527,7 +569,7 @@ contract TokenSwapTest is Test {
         );
         vm.stopPrank();
 
-        // Verificar estado final
+        /// @dev Verify final state
         vm.startPrank(owner);
         assertFalse(
             token.swapAndLiquifyEnabled(),
@@ -536,10 +578,11 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test fee mechanism edge cases
     function testFeeMechanismEdgeCases() public {
         vm.startPrank(owner);
 
-        // Teste com todas as taxas em zero
+        /// @dev Test with all fees at zero
         token.setFees(0, 0, 0);
         uint256 amount = 1000;
         uint256 balanceBefore = token.balanceOf(userA);
@@ -550,16 +593,16 @@ contract TokenSwapTest is Test {
             'Transfer amount should be exact when fees are zero'
         );
 
-        // Teste com taxas máximas (99%)
+        /// @dev Test with maximum fees (99%)
         token.setFees(33, 33, 33);
         amount = 1000;
         balanceBefore = token.balanceOf(userB);
 
-        // Excluir owner das taxas para garantir que as taxas sejam aplicadas
+        /// @dev Include owner in fees to ensure they are applied
         token.includeInFee(owner);
         token.transfer(userB, amount);
 
-        // Com 99% de taxas, o valor recebido deve ser aproximadamente 1% do amount
+        /// @dev With 99% fees, the received amount should be approximately 1% of the amount
         uint256 expectedAmount = amount / 100;
         assertTrue(
             token.balanceOf(userB) <= expectedAmount,
@@ -568,10 +611,12 @@ contract TokenSwapTest is Test {
 
         vm.stopPrank();
     }
+
+    /// @dev Test reflection mechanism edge cases
     function testReflectionMechanismEdgeCases() public {
         vm.startPrank(owner);
 
-        // Teste reflexão com valores pequenos
+        /// @dev Test reflection with small values
         uint256 tinyAmount = 1;
         uint256 balanceBefore = token.balanceOf(userB);
         token.transfer(userB, tinyAmount);
@@ -580,7 +625,7 @@ contract TokenSwapTest is Test {
             'Reflection should work with tiny amounts'
         );
 
-        // Teste reflexão com valores médios
+        /// @dev Test reflection with medium values
         uint256 mediumAmount = token.maxTxAmount() / 2;
         balanceBefore = token.balanceOf(userA);
         token.transfer(userA, mediumAmount);
@@ -592,21 +637,22 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
+    /// @dev Test liquidity addition edge cases
     function testLiquidityAdditionEdgeCases() public {
         vm.startPrank(owner);
 
-        // Setup
+        /// @dev Setup
         address factoryAddress = makeAddr('factory');
         setupMocks(factoryAddress);
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        // Teste adição de liquidez com ETH zero
+        /// @dev Test liquidity addition with zero ETH
         vm.deal(address(token), 0);
         uint256 tokenAmount = token.numTokensSellToAddToLiquidity();
         token.transfer(address(token), tokenAmount);
 
-        // Teste adição de liquidez com tokens zero
+        /// @dev Test liquidity addition with zero ETH
         vm.deal(address(token), 1 ether);
         vm.expectRevert(InvalidAmount.selector);
         token.transfer(address(token), 0);
@@ -614,7 +660,7 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
 
-    // Função helper para setup dos mocks
+    /// @dev Helper function to setup mocks
     function setupMocks(address factoryAddress) private {
         vm.mockCall(
             routerAddress,
@@ -641,17 +687,17 @@ contract TokenSwapTest is Test {
     function testModifierEdgeCases() public {
         vm.startPrank(owner);
 
-        // Setup
+        /// @dev Setup
         address factoryAddress = makeAddr('factory');
         setupMocks(factoryAddress);
         token.configureUniswap(routerAddress);
         token.setSwapAndLiquifyEnabled(true);
 
-        // Simular reentrada
+        /// @dev Simulate reentry
         uint256 triggerAmount = token.numTokensSellToAddToLiquidity();
         token.transfer(address(token), triggerAmount);
 
-        // Mock para fazer o swap falhar com ContractLocked
+        /// @dev Mock to make the swap fail with ContractLocked
         vm.mockCallRevert(
             routerAddress,
             abi.encodeWithSelector(
@@ -668,7 +714,7 @@ contract TokenSwapTest is Test {
         vm.stopPrank();
     }
     function testOwnershipEdgeCases() public {
-        // Teste tentativas de não-owner
+        /// @dev Test non-owner attempts
         vm.startPrank(userA);
 
         vm.expectRevert();

@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import {Initializable} from '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import {OwnableUpgradeable} from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import {ReentrancyGuardUpgradeable} from '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
 
 interface IUniswapV2Router02 {
     function factory() external pure returns (address);
@@ -58,8 +59,14 @@ error NumTokensSellToAddToLiquidityFailed(
 error UpgradesAreFrozen();
 error InvalidImplementation();
 error TokenBalanceZero();
+error LiquidityAdditionFailed();
 
-contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract Token is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     uint256 private constant MAX = ~uint256(0);
     uint256 private _tTotal;
     uint256 private _rTotal;
@@ -122,6 +129,11 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     );
     event UniswapV2RouterUpdated(address newRouter);
     event IncludedInFee(address indexed account);
+    event LiquidityAdded(
+        uint256 tokenAmount,
+        uint256 ethAmount,
+        uint256 liquidity
+    );
 
     modifier lockTheSwap() {
         inSwapAndLiquify = true;
@@ -149,6 +161,7 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
 
         _name = tokenName;
         _symbol = tokenSymbol;
@@ -214,16 +227,18 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         _upgradesFrozen = true;
     }
 
-    function transfer(address recipient, uint256 amount) public returns (bool) {
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) public nonReentrant returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
-
     function transferFrom(
         address sender,
         address recipient,
         uint256 amount
-    ) public returns (bool) {
+    ) public nonReentrant returns (bool) {
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         if (currentAllowance < amount) {
             revert InsufficientBalance(currentAllowance, amount);
@@ -393,6 +408,10 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             uniswapV2Router.WETH()
         );
 
+        if (pair == address(0)) {
+            revert ZeroAddress();
+        }
+
         uniswapV2Pair = pair;
         _isExcludedFromFee[pair] = true;
         _isExcludedFromFee[routerAddress] = true;
@@ -401,10 +420,12 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function isSwapAndLiquifyEnabled() external view returns (bool) {
-        return swapAndLiquifyEnabled; 
+        return swapAndLiquifyEnabled;
     }
 
-    function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
+    function swapAndLiquify(
+        uint256 contractTokenBalance
+    ) private lockTheSwap {
         if (contractTokenBalance == 0) {
             revert TokenBalanceZero();
         }
@@ -452,16 +473,31 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
+        // Verificar se o router é válido
+        if (address(uniswapV2Router) == address(0)) {
+            revert ZeroAddress();
+        }
+
+        /// @dev approve router to spend tokens
         _approve(address(this), address(uniswapV2Router), tokenAmount);
 
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
+        /// @dev add liquidity with returned values checks
+        (uint amountToken, uint amountETH, uint liquidity) = uniswapV2Router
+            .addLiquidityETH{value: ethAmount}(
             address(this),
             tokenAmount,
-            0,
-            0,
-            owner(),
+            0, // Accept any amount of tokens
+            0, // Accept any amount of ETH
+            owner(), // LP tokens will go to the owner
             block.timestamp
         );
+
+        /// @dev verify if liquidity addition was successful
+        if (liquidity == 0) {
+            revert LiquidityAdditionFailed();
+        }
+
+        emit LiquidityAdded(amountToken, amountETH, liquidity);
     }
 
     function _reflectFee(uint256 tFee) private {
@@ -486,7 +522,7 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _getRate() private view returns (uint256) {
-        require(_tTotal > 0, "Total supply must be greater than zero");
+        require(_tTotal > 0, 'Total supply must be greater than zero');
         return _rTotal / _tTotal;
     }
 
@@ -505,14 +541,21 @@ contract Token is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             revert InvalidImplementation();
         }
 
-        try UUPSUpgradeable(newImplementation).proxiableUUID() returns (bytes32 uuid) {
-            if (uuid != bytes32(0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)) {
+        try UUPSUpgradeable(newImplementation).proxiableUUID() returns (
+            bytes32 uuid
+        ) {
+            if (
+                uuid !=
+                bytes32(
+                    0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+                )
+            ) {
                 revert InvalidImplementation();
             }
         } catch {
             revert InvalidImplementation();
         }
     }
-    
+
     receive() external payable {}
 }

@@ -1,11 +1,9 @@
 {
   "name": "caramelo-smart-contracts",
   "scripts": {
-    "verify": "npx hardhat verify --network mumbai 0x74dC770ab1e2Ac3a001ee220765fc1af37758a27",
-    "deploy-client-core": "npx hardhat run ./scripts/deploy.ts --network besu",
-    "upgrade-client-core": "npx hardhat run ./scripts/upgradeProxyClientCore.ts --network besu",
-    "compile": "npx hardhat compile",
+    "compile": "forge compile",
     "test": "forge test --fork-url https://bsc-dataseed.binance.org/ -vv",
+    "deploy": "forge script scripts/Deploy.s.sol:DeployCaramelo --rpc-url https://bsc-dataseed.binance.org/ --broadcast",
     "test-full": "forge test --fork-url https://bsc-dataseed.binance.org/ -vvvv",
     "coverage": "forge coverage --no-match-coverage 'test/.*.sol'",
     "clean": "rm -rf node_modules",

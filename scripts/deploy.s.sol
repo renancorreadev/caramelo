@@ -10,29 +10,31 @@ contract DeployCaramelo is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
-
         // Parâmetros de inicialização
         string memory tokenName = "Caramelo";
         string memory tokenSymbol = "CAR";
         uint256 totalSupply = 1_000_000_000_000_000; // 1 trilhão de tokens
-        uint256 taxFee = 5;
-        uint256 liquidityFee = 5;
-        uint256 burnFee = 3;
-        uint256 maxTxAmount = 10000; // Ajuste o limite
-        uint256 numTokensSellToAddToLiquidity = 5000; // Ajuste conforme necessário
-
+        uint8 tokenDecimals = 6;
+        uint256 taxFee = 5; // 5%
+        uint256 liquidityFee = 5; // 5%
+        uint256 burnFee = 3; // 3% 
+        uint256 maxTxAmount = 50_000_000_000_000; // 50 bilhões de tokens 5% do totalSupply
+        uint256 numTokensSellToAddToLiquidity = 200_000_000_000_000; // 20% do totalSupply - 200 bilhões de tokens
+        string memory version = "1.0.0";
         // Deploy do contrato
         Token caramelo = new Token();
-
+        
         caramelo.initialize(
             tokenName,
             tokenSymbol,
             totalSupply,
+            tokenDecimals,
             taxFee,
             liquidityFee,
             burnFee,
             maxTxAmount,
-            numTokensSellToAddToLiquidity
+            numTokensSellToAddToLiquidity,
+            version
         );
 
         console.log("Token deployed at:", address(caramelo));
