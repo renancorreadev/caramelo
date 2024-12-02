@@ -195,6 +195,59 @@ contract:  https://testnet.bscscan.com/token/0x367e257b64457b0c558735766f42f17b1
 par: https://testnet.bscscan.com/address/0x05b0cf5efa12dc9bd83558b4787120a9297d9246
 
 
+## Coverage
+
+## Test Coverage
+
+The Caramelo Token smart contract has been thoroughly tested to ensure its functionality, security, and reliability. The following aspects have been covered in our test suite:
+
+- **Token Transfers**:
+  - Validating successful token transfers between accounts.
+  - Ensuring transfers respect the maximum transaction amount.
+  - Verifying that transfers to and from zero addresses are handled correctly.
+
+- **Fee Mechanisms**:
+  - Testing the application of tax, liquidity, and burn fees on transactions.
+  - Ensuring accounts excluded from fees are correctly handled.
+  - Verifying that the total fees do not exceed 100%.
+
+- **Liquidity Management**:
+  - Testing the automatic liquidity provisioning via Uniswap.
+  - Ensuring the correct amount of tokens are swapped and added to liquidity.
+  - Verifying the `swapAndLiquify` functionality is enabled and works as expected.
+
+- **Upgradeability**:
+  - Testing the UUPS upgrade pattern to ensure the contract can be upgraded securely.
+  - Verifying that upgrade freezing works as intended.
+
+- **Reflection Mechanism**:
+  - Ensuring the redistribution of fees to holders based on their balances.
+  - Verifying that the reflection mechanism correctly updates holder balances.
+
+- **Custom Errors**:
+  - Testing scenarios that trigger custom errors to ensure they are raised appropriately.
+  - Verifying that error messages provide accurate and helpful information.
+
+- **Events**:
+  - Ensuring all relevant events are emitted during contract operations.
+  - Verifying the correctness of event parameters.
+
+Our comprehensive test suite ensures that the Caramelo Token contract operates as intended and provides a secure and reliable token management system for users.
+
+Test results and coverage reports can be found in the `docs/coverage` directory.
+
+
 <p align="center">
-  <img src="URL_DA_IMAGEM" alt="Descrição da Imagem" />
+  <img src="docs/coverage.png" alt="Descrição da Imagem" />
 </p>
+
+# Pancake Swap Tests 
+
+<p align="center">
+  <img src="docs/PancakeSwap.png" alt="Descrição da Imagem" />
+</p>
+
+
+## Author
+
+For more information, you can visit the author's GitHub profile: [Renan Correa](https://github.com/renancorreadev)
