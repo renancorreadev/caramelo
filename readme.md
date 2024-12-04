@@ -189,12 +189,6 @@ Licensed under MIT.
 | `LiquidityAdded`             | `uint256 tokenAmount, uint256 ethAmount`       | Emitted when liquidity is added to Uniswap.                         |
 
 
-
-
-contract:  https://testnet.bscscan.com/token/0x367e257b64457b0c558735766f42f17b110d7709#readContract
-par: https://testnet.bscscan.com/address/0x05b0cf5efa12dc9bd83558b4787120a9297d9246
-
-
 ## Coverage
 
 ## Test Coverage
@@ -247,6 +241,16 @@ Test results and coverage reports can be found in the `docs/coverage` directory.
   <img src="docs/PancakeSwap.png" alt="Descrição da Imagem" />
 </p>
 
+
+## Caramelo Token Deployes 
+contract:  https://testnet.bscscan.com/token/0x367e257b64457b0c558735766f42f17b110d7709#readContract
+par: https://testnet.bscscan.com/address/0x05b0cf5efa12dc9bd83558b4787120a9297d9246
+
+## Caramelo PreSale Deployes 
+contract: https://testnet.bscscan.com/address/0x8c4293f4612dc1ca8ee3bb8922d21f8cd332522a#readContract
+
+## Caramelo Token Solana
+contract: https://solscan.io/token/9fUWjkopc66Q6JmnwgjiqFMS3TFDpr34MWiNcgqBZyMF
 
 ## Author
 

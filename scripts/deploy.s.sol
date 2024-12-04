@@ -50,3 +50,12 @@ forge verify-contract --chain-id 97 --watch \
 0xb60CDB1Cba0245B9db7188F0CEe4979EB8a52fe7 contracts/Token.sol:Token
 
  */
+
+
+ // Pre sale 
+
+// 20 % do totalSupply para Pre venda 
+// 80% para lancamento.   
+
+// Criar whitelist permitindo endereco comprar mais que MaxTxLimit 
+

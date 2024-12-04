@@ -39,6 +39,9 @@ contract CarameloPreSale is Ownable, ReentrancyGuard {
     event PreSaleEnded();
     event FundsWithdrawn(address indexed owner, uint256 amount);
 
+    // MaxTxLimit = 100 000 tokens 
+
+    // permitir lista de enderecos para comprar mais que MaxTxLimit
     constructor(
         address tokenAddress,
         uint256 ratePhase1,
@@ -122,3 +125,5 @@ contract CarameloPreSale is Ownable, ReentrancyGuard {
         buyTokens();
     }
 }
+
+

@@ -87,7 +87,6 @@ contract UpgradeTokenTest is Test {
         uint8 decimals;
         uint256 taxFee;
         uint256 liquidityFee;
-        uint256 burnFee;
         uint256 maxTokensTXAmount;
         uint256 numTokensSellToAddToLiquidity;
         string version;
@@ -101,7 +100,6 @@ contract UpgradeTokenTest is Test {
             decimals: 6,
             taxFee: 5,
             liquidityFee: 5,
-            burnFee: 3,
             maxTokensTXAmount: 500_000,
             numTokensSellToAddToLiquidity: 500_000,
             version: '1'
@@ -124,7 +122,6 @@ contract UpgradeTokenTest is Test {
             tokenParams.decimals,
             tokenParams.taxFee,
             tokenParams.liquidityFee,
-            tokenParams.burnFee,
             tokenParams.maxTokensTXAmount,
             tokenParams.numTokensSellToAddToLiquidity,
             tokenParams.version
@@ -351,10 +348,9 @@ contract UpgradeTokenTest is Test {
 
         /// @dev calculate expected amount after fees
         uint256 transferAmount = 500 * 10 ** tokenParams.decimals;
-        uint256 totalFee = tokenParams.taxFee +
-            tokenParams.liquidityFee +
-            tokenParams.burnFee;
+        uint256 totalFee = tokenParams.taxFee + tokenParams.liquidityFee;
         uint256 expectedAmount = (transferAmount * (100 - totalFee)) / 100;
+
 
         /// @dev transfer tokens to userB
         vm.startPrank(userA);
@@ -452,7 +448,7 @@ contract UpgradeTokenTest is Test {
 
         /// @dev set initial state
         vm.startPrank(owner);
-        proxyToken.setFees(3, 3, 3); // Definir novas taxas
+        proxyToken.setFees(3, 3); // Definir novas taxas
         uint256 initialTaxFee = proxyToken.taxFee();
 
         /// @dev upgrade to V2

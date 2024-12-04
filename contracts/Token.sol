@@ -63,7 +63,7 @@ error TokenBalanceZero();
 error LiquidityAdditionFailed();
 error TransferAmountZero();
 error TransferAmountExceedsMax();
-
+error ZeroValue();
 
 contract Token is
     Initializable,
@@ -87,7 +87,6 @@ contract Token is
 
     uint256 public taxFee;
     uint256 public liquidityFee;
-    uint256 public burnFee;
 
     uint256 public maxTxAmount;
     uint256 public numTokensSellToAddToLiquidity;
@@ -122,11 +121,7 @@ contract Token is
     event UniswapConfigured(address indexed router, address indexed pair);
     event ExcludedFromFee(address indexed account);
     event SwapAndLiquifyEnabledUpdated(bool enabled);
-    event FeesUpdated(
-        uint256 indexed _taxFee,
-        uint256 indexed _liquidityFee,
-        uint256 indexed _burnFee
-    );
+    event FeesUpdated(uint256 indexed _taxFee, uint256 indexed _liquidityFee);
     event MaxTxAmountUpdated(uint256 newMaxTxAmount);
     event NumTokensSellToAddToLiquidityUpdated(
         uint256 newNumTokensSellToAddToLiquidity
@@ -154,14 +149,13 @@ contract Token is
         uint8 _token_decimals,
         uint256 _taxFee,
         uint256 _liquidityFee,
-        uint256 _burnFee,
         uint256 _maxTokensTXAmount,
         uint256 _numTokensSellToAddToLiquidity,
         string memory version
     ) public initializer {
         if (owner() != address(0)) revert AlreadyInitialized();
-        if (_taxFee + _liquidityFee + _burnFee > 100) {
-            revert FeesExceeded(_taxFee + _liquidityFee + _burnFee);
+        if (_taxFee + _liquidityFee > 100) {
+            revert FeesExceeded(_taxFee + _liquidityFee);
         }
 
         __Ownable_init();
@@ -177,7 +171,6 @@ contract Token is
 
         taxFee = _taxFee;
         liquidityFee = _liquidityFee;
-        burnFee = _burnFee;
 
         maxTxAmount = _maxTokensTXAmount * 10 ** _decimals;
         numTokensSellToAddToLiquidity =
@@ -316,17 +309,16 @@ contract Token is
 
     function setFees(
         uint256 _taxFee,
-        uint256 _liquidityFee,
-        uint256 _burnFee
+        uint256 _liquidityFee
     ) external onlyOwner {
-        if (_taxFee + _liquidityFee + _burnFee > 100) {
-            revert FeesExceeded(_taxFee + _liquidityFee + _burnFee);
+        uint256 totalFee = _taxFee + _liquidityFee;
+        if (totalFee > 100) {
+            revert FeesExceeded(totalFee);
         }
         taxFee = _taxFee;
         liquidityFee = _liquidityFee;
-        burnFee = _burnFee;
 
-        emit FeesUpdated(_taxFee, _liquidityFee, _burnFee);
+        emit FeesUpdated(_taxFee, _liquidityFee);
     }
 
     function approve(address spender, uint256 amount) public returns (bool) {
@@ -374,19 +366,36 @@ contract Token is
 
         if (takeFee) {
             tFee = (amount * taxFee) / 100;
+
+            /// @dev Burn 30% of the taxFee
+            tBurn = (tFee * 30) / 100;
+
+            /// @dev Distribute 70% of the taxFee to holders
+            tFee = tFee - tBurn;
+
+            /// @dev Calculate liquidity fee
             tLiquidity = (amount * liquidityFee) / 100;
-            tBurn = (amount * burnFee) / 100;
         }
 
         uint256 tTransferAmount = amount - tFee - tLiquidity - tBurn;
 
+        /// @dev Update sender's balance
         _rOwned[sender] -= amount * _getRate();
+
+        /// @dev Update recipient's balance
         _rOwned[recipient] += tTransferAmount * _getRate();
 
+        /// @dev Process fees if applicable
         if (takeFee) {
             _reflectFee(tFee);
             _takeLiquidity(tLiquidity);
+
+            /// @dev Adjust total supply by burning tokens
             _burn(tBurn);
+
+            /// @dev Emit event for detailed tracking
+            emit FeesDistributed(tFee, tLiquidity, tBurn);
+            emit TokensBurned(sender, tBurn);
         }
 
         emit Transfer(sender, recipient, tTransferAmount);
@@ -514,11 +523,17 @@ contract Token is
     }
 
     function _burn(uint256 tBurn) private {
-        uint256 rBurn = tBurn * _getRate();
-        _rTotal -= rBurn;
-        _tTotal -= tBurn;
-
-        emit TokensBurned(address(this), tBurn);
+        /// @dev Burn tokens if amount is greater than zero
+        if (tBurn > 0) {
+            uint256 rBurn = tBurn * _getRate();
+            _rTotal -= rBurn;
+            _tTotal -= tBurn;
+            /// @dev Emit event for detailed tracking
+            emit TokensBurned(address(this), tBurn);
+        } else {
+            /// @dev Revert if amount is zero
+            revert ZeroValue();
+        }
     }
 
     function _getRate() private view returns (uint256) {

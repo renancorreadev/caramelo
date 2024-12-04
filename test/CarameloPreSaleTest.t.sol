@@ -72,7 +72,6 @@ contract TokenPresaleTest is Test {
         uint8 decimals;
         uint256 taxFee;
         uint256 liquidityFee;
-        uint256 burnFee;
         uint256 maxTokensTXAmount;
         uint256 numTokensSellToAddToLiquidity;
         string version;
@@ -89,13 +88,12 @@ contract TokenPresaleTest is Test {
         TokenParams({
             name: 'Token',
             symbol: 'TKN',
-            initialSupply: 1_000_000, // 1,000,000 tokens
-            decimals: 6, // 6%
-            taxFee: 5, // 5%
-            liquidityFee: 5, // 5%
-            burnFee: 3, // 3%
-            maxTokensTXAmount: 500_000 * 10 ** 6, // 500,000 tokens
-            numTokensSellToAddToLiquidity: 50_000 * 10 ** 6, // 50,000 tokens
+            initialSupply: 1_000_000, 
+            decimals: 6, 
+            taxFee: 5, 
+            liquidityFee: 5,
+            maxTokensTXAmount: 500_000 * 10 ** 6, 
+            numTokensSellToAddToLiquidity: 50_000 * 10 ** 6, 
             version: '1'
         });
 
@@ -128,7 +126,6 @@ contract TokenPresaleTest is Test {
             tokenParams.decimals,
             tokenParams.taxFee,
             tokenParams.liquidityFee,
-            tokenParams.burnFee,
             tokenParams.maxTokensTXAmount,
             tokenParams.numTokensSellToAddToLiquidity,
             tokenParams.version
