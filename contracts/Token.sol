@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
+import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
+import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
 interface IUniswapV2Router02 {
     function factory() external pure returns (address);
@@ -37,7 +37,6 @@ interface IUniswapV2Factory {
 }
 
 // Custom Errors
-error AlreadyInitialized();
 error ZeroAddress();
 error InvalidAmount();
 error AlreadyExcluded();
@@ -141,10 +140,8 @@ contract Token is Ownable, ReentrancyGuard {
         uint256 _taxFee,
         uint256 _liquidityFee,
         uint256 _maxTokensTXAmount,
-        uint256 _numTokensSellToAddToLiquidity,
-        string memory version
+        uint256 _numTokensSellToAddToLiquidity
     ) Ownable(msg.sender) ReentrancyGuard() {
-        if (owner() != address(0)) revert AlreadyInitialized();
         if (_taxFee + _liquidityFee > 100) {
             revert FeesExceeded(_taxFee + _liquidityFee);
         }
@@ -167,8 +164,6 @@ contract Token is Ownable, ReentrancyGuard {
 
         _isExcludedFromFee[_msgSender()] = true;
         _isExcludedFromFee[address(this)] = true;
-
-        contractVersion = version;
 
         emit Transfer(address(0), _msgSender(), _tTotal);
     }

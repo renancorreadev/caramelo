@@ -9,21 +9,21 @@ import {CarameloPreSale} from '../contracts/CarameloPreSale.sol';
 /**
  * @dev This contract is a test suite for the CarameloPreSale contract.
  * It includes tests for the initialization, participation, and finalization of the presale.
- * 
+ *
  * The test suite uses the Forge testing framework and includes the following components:
- * 
+ *
  * - Token: The token contract that will be sold during the presale.
  * - CarameloPreSale: The presale contract that manages the sale of tokens.
  * - RejectEther: A contract used to reject any ether sent to it, ensuring no accidental transfers.
- * 
+ *
  * The test suite verifies the following:
- * 
+ *
  * - Deployment and initialization of the CarameloPreSale contract.
  * - Participation in the presale by different users.
  * - Handling of invalid participation attempts (e.g., insufficient funds, invalid token amounts).
  * - Finalization of the presale and distribution of tokens.
  * - Ensuring the state and functionality are preserved throughout the presale process.
- * 
+ *
  * The test suite also includes various utility functions and event checks to ensure the correctness of the presale process.
  */
 
@@ -35,7 +35,7 @@ error InvalidTokenAmount();
 error PreSaleAlreadyInitialized();
 error ZeroAddress();
 error WithdrawalFailed();
-
+error MaxTokensBuyExceeded(uint256 allowed, uint256 attempted);
 // Reject ether
 contract RejectEther {
     fallback() external payable {
@@ -72,10 +72,8 @@ contract TokenPresaleTest is Test {
         uint8 decimals;
         uint256 taxFee;
         uint256 liquidityFee;
-        uint256 burnFee;
         uint256 maxTokensTXAmount;
         uint256 numTokensSellToAddToLiquidity;
-        string version;
     }
 
     struct PreSaleParams {
@@ -89,22 +87,20 @@ contract TokenPresaleTest is Test {
         TokenParams({
             name: 'Token',
             symbol: 'TKN',
-            initialSupply: 1_000_000, // 1,000,000 tokens
-            decimals: 6, // 6%
-            taxFee: 5, // 5%
-            liquidityFee: 5, // 5%
-            burnFee: 3, // 3%
-            maxTokensTXAmount: 500_000 * 10 ** 6, // 500,000 tokens
-            numTokensSellToAddToLiquidity: 50_000 * 10 ** 6, // 50,000 tokens
-            version: '1'
+            initialSupply: 420_000_000_000,
+            decimals: 6,
+            taxFee: 5,
+            liquidityFee: 5,
+            maxTokensTXAmount: 21_000_000_000 * 10 ** 6, // 5% of initial supply
+            numTokensSellToAddToLiquidity: 84_000_000_000 * 10 ** 6 // 20% of initial supply
         });
 
     PreSaleParams public preSaleParams =
         PreSaleParams({
-            ratePhase1: 100_000 * 10 ** 6, // 1 BNB = 100,000 tokens
-            ratePhase2: 60_000 * 10 ** 6, // 1 BNB = 60,000 tokens
-            ratePhase3: 50_000 * 10 ** 6, // 1 BNB = 50,000 tokens
-            tokensAvailable: 300_000 * 10 ** 6 // 300,000 tokens
+            ratePhase1: 100_000_000 * 10 ** 6, // 1 BNB = 100,000 tokens
+            ratePhase2: 60_000_000 * 10 ** 6, // 1 BNB = 60,000 tokens
+            ratePhase3: 50_000_000 * 10 ** 6, // 1 BNB = 50,000 tokens
+            tokensAvailable: 84_000_000_000 * 10 ** 6 // 20% of total supply
         });
     // ------------------------------------------------------------------------
 
@@ -116,22 +112,21 @@ contract TokenPresaleTest is Test {
         (owner, ownerPrivateKey) = makeAddrAndKey('owner');
         (userA, userAPrivateKey) = makeAddrAndKey('userA');
         (userB, userBPrivateKey) = makeAddrAndKey('userB');
-        (presaleWallet, presaleWalletPrivateKey) = makeAddrAndKey('presaleWallet');
+        (presaleWallet, presaleWalletPrivateKey) = makeAddrAndKey(
+            'presaleWallet'
+        );
 
         // Criando e inicializando o token
         vm.startPrank(owner);
-        token = new Token();
-        token.initialize(
+        token = new Token(
             tokenParams.name,
             tokenParams.symbol,
             tokenParams.initialSupply,
             tokenParams.decimals,
             tokenParams.taxFee,
             tokenParams.liquidityFee,
-            tokenParams.burnFee,
             tokenParams.maxTokensTXAmount,
-            tokenParams.numTokensSellToAddToLiquidity,
-            tokenParams.version
+            tokenParams.numTokensSellToAddToLiquidity
         );
         vm.stopPrank();
 
@@ -692,6 +687,273 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
         console.log('\n');
     }
+
+    function testWhitelistPurchaseWithHigherLimit() public {
+        console.log('-------------------------------------------------');
+        console.log(
+            '--------- TEST WHITELIST PURCHASE WITH HIGHER LIMIT ---------'
+        );
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+
+        /// @dev addToWhitelist
+        carameloPreSale.addToWhitelist(userA);
+        vm.stopPrank();
+
+        /// @dev verify initial state
+        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
+        console.log(
+            '--> Saldo inicial de tokens do user A:',
+            initialTokenBalance
+        );
+
+        /// @dev calculate bnb amount to buy all available tokens
+        uint256 bnbAmount = (initialTokensAvailable * 1 ether) /
+            preSaleParams.ratePhase1;
+        uint256 expectedTokens = (bnbAmount * preSaleParams.ratePhase1) /
+            1 ether;
+
+        vm.deal(userA, bnbAmount);
+        vm.startPrank(userA);
+        carameloPreSale.buyTokens{value: bnbAmount}();
+        vm.stopPrank();
+
+        /// @dev verify final state
+        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
+
+        console.log('--> Saldo final de tokens do user A:', finalTokenBalance);
+
+        assertEq(
+            finalTokenBalance,
+            initialTokenBalance + expectedTokens,
+            'O saldo do user A deve ter aumentado corretamente.'
+        );
+
+        assertEq(
+            finalTokensAvailable,
+            initialTokensAvailable - expectedTokens,
+            'O saldo de tokens alocados para pre-venda deve ter diminuido corretamente.'
+        );
+        console.log('\n');
+    }
+
+    function testNonWhitelistUserRespectsMaxTokensBuy() public {
+        console.log('-------------------------------------------------');
+        console.log(
+            '--------- TEST NON-WHITELIST USER MAX TOKENS BUY ---------'
+        );
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+
+        /// @dev updateMaxTokensBuy
+        uint256 newMaxTokensBuy = 2_000 * 10 ** 6;
+        carameloPreSale.updateMaxTokensBuy(newMaxTokensBuy);
+        vm.stopPrank();
+
+        /// @dev verify initial state
+        uint256 initialTokenBalance = token.balanceOf(userB);
+
+        /// @dev calculate bnb amount to buy more than the allowed limit
+        uint256 bnbAmount = ((newMaxTokensBuy + 1) * 1 ether) /
+            preSaleParams.ratePhase1; // Calcula o valor em BNB necessário para ultrapassar o limite
+        vm.deal(userB, bnbAmount);
+        vm.startPrank(userB);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MaxTokensBuyExceeded.selector,
+                newMaxTokensBuy,
+                newMaxTokensBuy + 1
+            )
+        );
+        carameloPreSale.buyTokens{value: bnbAmount}();
+
+        vm.stopPrank();
+
+        /// @dev verify final state
+        uint256 finalTokenBalance = token.balanceOf(userB);
+        assertEq(
+            finalTokenBalance,
+            initialTokenBalance,
+            'O saldo do user B deve permanecer inalterado.'
+        );
+        console.log('\n');
+    }
+
+    function testUpdateMaxTokensBuy() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST UPDATE MAX TOKENS BUY ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+
+        /// @dev updateMaxTokensBuy
+        uint256 newMaxTokensBuy = 3_000 * 10 ** 6;
+        carameloPreSale.updateMaxTokensBuy(newMaxTokensBuy);
+
+        /// @dev verify maxTokensBuy
+        assertEq(
+            carameloPreSale.maxTokensBuy(),
+            newMaxTokensBuy,
+            'O novo limite de maxTokensBuy deve ser refletido corretamente.'
+        );
+
+        vm.stopPrank();
+        console.log('\n');
+    }
+
+    function testAddAndRemoveFromWhitelist() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST ADD AND REMOVE FROM WHITELIST ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev Add userA to whitelist
+        vm.startPrank(owner);
+        carameloPreSale.addToWhitelist(userA);
+        assertEq(
+            carameloPreSale.whitelist(userA),
+            true,
+            'O userA deveria estar na whitelist.'
+        );
+
+        /// @dev Remove userA from whitelist
+        carameloPreSale.removeFromWhitelist(userA);
+        assertEq(
+            carameloPreSale.whitelist(userA),
+            false,
+            'O userA deveria ter sido removido da whitelist.'
+        );
+        vm.stopPrank();
+        console.log('\n');
+    }
+
+    function testBuyAfterWhitelistRemoval() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST BUY AFTER WHITELIST REMOVAL ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+
+        /// @dev addToWhitelist and then remove
+        carameloPreSale.addToWhitelist(userA);
+        carameloPreSale.removeFromWhitelist(userA);
+        vm.stopPrank();
+
+        /// @dev verify initial state
+        uint256 initialTokenBalance = token.balanceOf(userA);
+
+        /// @dev try to buy more than maxTokensBuy
+        uint256 newMaxTokensBuy = 2_000 * 10 ** 6;
+        vm.startPrank(owner);
+        carameloPreSale.updateMaxTokensBuy(newMaxTokensBuy);
+        vm.stopPrank();
+
+        uint256 bnbAmount = ((newMaxTokensBuy + 1) * 1 ether) /
+            /// @dev Calculate bnb amount to buy more than the allowed limit
+            preSaleParams.ratePhase1;
+        vm.deal(userA, bnbAmount);
+        vm.startPrank(userA);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MaxTokensBuyExceeded.selector,
+                newMaxTokensBuy,
+                newMaxTokensBuy + 1
+            )
+        );
+        carameloPreSale.buyTokens{value: bnbAmount}();
+
+        vm.stopPrank();
+
+        /// @dev verify final state
+        uint256 finalTokenBalance = token.balanceOf(userA);
+        assertEq(
+            finalTokenBalance,
+            initialTokenBalance,
+            'O saldo do user A deve permanecer inalterado apos remocao da whitelist.'
+        );
+        console.log('\n');
+    }
+
+    function testBuyMoreThanAvailableTokens() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST BUY MORE THAN AVAILABLE TOKENS ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+        vm.stopPrank();
+
+        /// @dev verify initial state
+        uint256 tokensAvailable = carameloPreSale.tokensRemaining();
+
+        /// @dev try to buy more tokens than available
+        uint256 bnbAmount = ((tokensAvailable + 1) * 1 ether) /
+            preSaleParams.ratePhase1;
+        vm.deal(userA, bnbAmount);
+        vm.startPrank(userA);
+
+        vm.expectRevert(NoTokensAvailable.selector);
+        carameloPreSale.buyTokens{value: bnbAmount}();
+
+        vm.stopPrank();
+        console.log('\n');
+    }
+
+    function testBuyWithoutPhaseUpdate() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST BUY WITHOUT PHASE UPDATE ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+        vm.stopPrank();
+
+        /// @dev verify initial state
+        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 ratePhase1 = preSaleParams.ratePhase1;
+
+        /// @dev buy tokens without updating phase
+        uint256 bnbAmount = 1 ether; // 1 BNB
+        uint256 expectedTokens = (bnbAmount * ratePhase1) / 1 ether;
+
+        vm.deal(userA, bnbAmount);
+        vm.startPrank(userA);
+        carameloPreSale.buyTokens{value: bnbAmount}();
+        vm.stopPrank();
+
+        /// @dev verify final state
+        uint256 finalTokenBalance = token.balanceOf(userA);
+
+        assertEq(
+            finalTokenBalance,
+            initialTokenBalance + expectedTokens,
+            'O saldo do user A deve ter aumentado corretamente na mesma fase.'
+        );
+        console.log('\n');
+    }
+
     // ------------------------------------------------------------------------
     // ------------------------------------------------------------------------
 }
