@@ -3,6 +3,31 @@ pragma solidity ^0.8.22;
 
 import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
+import {
+    TokenomicsAlreadyInitialized,
+    ZeroAddress,
+    InvalidAmount,
+    AlreadyExcluded,
+    NotExcluded,
+    FeesExceeded,
+    ContractLocked,
+    UniswapAlreadyConfigured,
+    MaxTransactionExceeded,
+    InsufficientBalance,
+    InvalidTaxFee,
+    InvalidLiquidityFee,
+    InvalidBurnFee,
+    ApprovalFailed,
+    NumTokensSellToAddToLiquidityFailed,
+    UpgradesAreFrozen,
+    InvalidImplementation,
+    TokenBalanceZero,
+    LiquidityAdditionFailed,
+    TransferAmountZero,
+    TransferAmountExceedsMax,
+    ZeroValue,
+    InvalidTokenomicsPercentage
+} from './utils/CarameloErrors.sol';
 
 interface IUniswapV2Router02 {
     function factory() external pure returns (address);
@@ -36,34 +61,10 @@ interface IUniswapV2Factory {
     ) external returns (address pair);
 }
 
-// Custom Errors
-error ZeroAddress();
-error InvalidAmount();
-error AlreadyExcluded();
-error NotExcluded();
-error FeesExceeded(uint256 totalFees);
-error ContractLocked();
-error UniswapAlreadyConfigured();
-error MaxTransactionExceeded(uint256 maxTxAmount, uint256 attemptedAmount);
-error InsufficientBalance(uint256 available, uint256 required);
-error InvalidTaxFee();
-error InvalidLiquidityFee();
-error InvalidBurnFee();
-error ApprovalFailed(address owner, address spender, uint256 amount);
-error NumTokensSellToAddToLiquidityFailed(
-    uint256 currentAmount,
-    uint256 newAmount
-);
-error UpgradesAreFrozen();
-error InvalidImplementation();
-error TokenBalanceZero();
-error LiquidityAdditionFailed();
-error TransferAmountZero();
-error TransferAmountExceedsMax();
-error ZeroValue();
-
-contract Token is Ownable, ReentrancyGuard {
+contract Caramelo is Ownable, ReentrancyGuard {
     uint256 private constant MAX = ~uint256(0);
+    uint256 private constant FEE_DIVISOR = 100000; 
+
     uint256 private _tTotal;
     uint256 private _rTotal;
     uint256 private _tFeeTotal;
@@ -71,6 +72,7 @@ contract Token is Ownable, ReentrancyGuard {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
+    bool private initTokenomics = false;
 
     mapping(address => uint256) private _rOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -88,9 +90,6 @@ contract Token is Ownable, ReentrancyGuard {
 
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
-
-    string public contractVersion;
-    bool private _upgradesFrozen;
 
     // Eventos
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -132,6 +131,14 @@ contract Token is Ownable, ReentrancyGuard {
         inSwapAndLiquify = false;
     }
 
+    struct TokenomicsConfig {
+        address wallet;
+        uint256 percentage;
+    }
+
+    /// @dev Tokenomics configuration
+    TokenomicsConfig[6] public tokenomics;
+
     constructor(
         string memory tokenName,
         string memory tokenSymbol,
@@ -142,9 +149,11 @@ contract Token is Ownable, ReentrancyGuard {
         uint256 _maxTokensTXAmount,
         uint256 _numTokensSellToAddToLiquidity
     ) Ownable(msg.sender) ReentrancyGuard() {
-        if (_taxFee + _liquidityFee > 100) {
+        /// @dev Validate the sum of the fees
+        if (_taxFee + _liquidityFee > FEE_DIVISOR) {
             revert FeesExceeded(_taxFee + _liquidityFee);
         }
+
         _name = tokenName;
         _symbol = tokenSymbol;
         _decimals = _token_decimals;
@@ -160,8 +169,7 @@ contract Token is Ownable, ReentrancyGuard {
             _numTokensSellToAddToLiquidity *
             10 ** _decimals;
 
-        _rOwned[_msgSender()] = _rTotal;
-
+        _rOwned[_msgSender()] = _rTotal; 
         _isExcludedFromFee[_msgSender()] = true;
         _isExcludedFromFee[address(this)] = true;
 
@@ -199,11 +207,67 @@ contract Token is Ownable, ReentrancyGuard {
     }
 
     function balanceOf(address account) public view returns (uint256) {
+        if (_rOwned[account] == 0) {
+            return 0;
+        }
         return _rOwned[account] / _getRate();
     }
 
-    function freezeUpgrades() external onlyOwner {
-        _upgradesFrozen = true;
+    function initializeTokenomics() external onlyOwner {
+        if (!initTokenomics) {
+            revert TokenomicsAlreadyInitialized("Tokenomics already initialized!");
+        }
+
+        initTokenomics = true;
+
+        /// @dev Tokenomics Transfers
+        /// --> @dev Community Wallet
+        tokenomics[0] = TokenomicsConfig({
+            wallet: 0x770A14689463D15e7f2f28c581CC61FAf076E35c, // Community Wallet
+            percentage: 50 // 50% percentage 
+        });
+        /// --> @dev ONG Wallet
+        tokenomics[1] = TokenomicsConfig({
+            wallet: 0x5CffE6546affdCEEa5Fc02838Ad7B1aAec3Fc00A, // ONG Wallet
+            percentage: 15 // 15% percentage
+        });
+        /// --> @dev Marketing Wallet
+        tokenomics[2] = TokenomicsConfig({
+            wallet: 0x51B8470fE0DA250B5893Ee5B26574FEb32282F2b, // Marketing Wallet
+            percentage: 10 // 10% percentage
+        });
+
+        /// --> @dev Team One Wallet
+        tokenomics[3] = TokenomicsConfig({
+            wallet: 0x24f515276052D412f659aa28a6DD7f39a52F6aD7, // Team One Wallet
+            percentage: 10 // 10% percentage
+        });
+        /// --> @dev Team Second Wallet
+        tokenomics[4] = TokenomicsConfig({
+            wallet: 0xd3A2bd9cFB11067fa80Aca88bED48fa7CF0e2dcC, // Team Second Wallet
+            percentage: 10 // 10% percentage
+        });
+        /// --> @dev Developer Wallet
+        tokenomics[5] = TokenomicsConfig({
+            wallet: 0x05b0cF5Efa12dc9bd83558b4787120a9297D9246,
+            percentage: 5
+        });
+
+        /// @dev Validate the sum of the percentages
+        uint256 totalPercentage = 0;
+        for (uint256 i = 0; i < tokenomics.length; i++) {
+            if (tokenomics[i].wallet == address(0)) revert ZeroAddress();
+            totalPercentage += tokenomics[i].percentage;
+        }
+
+        if (totalPercentage != 100) revert InvalidTokenomicsPercentage();
+
+        /// @dev Initial transfer to each wallet
+        for (uint256 i = 0; i < tokenomics.length; i++) {
+            uint256 allocation = (_tTotal * tokenomics[i].percentage) / 100;
+
+            _transfer(_msgSender(), tokenomics[i].wallet, allocation);
+        }
     }
 
     function transfer(
@@ -293,7 +357,7 @@ contract Token is Ownable, ReentrancyGuard {
         uint256 _liquidityFee
     ) external onlyOwner {
         uint256 totalFee = _taxFee + _liquidityFee;
-        if (totalFee > 100) {
+        if (totalFee > FEE_DIVISOR) {
             revert FeesExceeded(totalFee);
         }
         taxFee = _taxFee;
@@ -326,8 +390,11 @@ contract Token is Ownable, ReentrancyGuard {
         if (recipient == address(0)) revert ZeroAddress();
         if (amount == 0) revert TransferAmountZero();
 
-        if (maxTxAmount > 0 && amount > maxTxAmount)
+        /// @dev verify if the transfer amount exceeds the maxTxAmount
+        /// @dev the maxTxAmount is not applied in the constructor to distribute the tokenomics
+        if (!initTokenomics && maxTxAmount > 0 && amount > maxTxAmount) {
             revert TransferAmountExceedsMax();
+        }
 
         uint256 contractTokenBalance = balanceOf(address(this));
 
@@ -346,16 +413,16 @@ contract Token is Ownable, ReentrancyGuard {
         uint256 tBurn = 0;
 
         if (takeFee) {
-            tFee = (amount * taxFee) / 100;
+            tFee = (amount * taxFee) / FEE_DIVISOR;
 
             /// @dev Burn 30% of the taxFee
-            tBurn = (tFee * 30) / 100;
+            tBurn = (tFee * 30000) / FEE_DIVISOR;  // 30% using FEE_DIVISOR
 
             /// @dev Distribute 70% of the taxFee to holders
             tFee = tFee - tBurn;
 
             /// @dev Calculate liquidity fee
-            tLiquidity = (amount * liquidityFee) / 100;
+            tLiquidity = (amount * liquidityFee) / FEE_DIVISOR;
         }
 
         uint256 tTransferAmount = amount - tFee - tLiquidity - tBurn;

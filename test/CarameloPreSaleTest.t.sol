@@ -3,8 +3,9 @@ pragma solidity ^0.8.20;
 
 import {Test} from 'forge-std/Test.sol';
 import {console} from 'forge-std/console.sol';
-import {Token} from '../contracts/Token.sol';
-import {CarameloPreSale} from '../contracts/CarameloPreSale.sol';
+import {Caramelo} from '../contracts/Caramelo.sol';
+import {CarameloPreSale} from '../contracts/CarameloPresale.sol';
+import {Phase, InsufficientFunds, InvalidPhase, PreSaleNotActive, NoTokensAvailable, InvalidTokenAmount, PreSaleAlreadyInitialized, ZeroAddress, WithdrawalFailed, MaxTokensBuyExceeded, InvalidPhaseRate} from '../contracts/utils/CarameloPreSaleErrors.sol';
 
 /**
  * @dev This contract is a test suite for the CarameloPreSale contract.
@@ -12,7 +13,7 @@ import {CarameloPreSale} from '../contracts/CarameloPreSale.sol';
  *
  * The test suite uses the Forge testing framework and includes the following components:
  *
- * - Token: The token contract that will be sold during the presale.
+ * - Caramelo: The carameloContract contract that will be sold during the presale.
  * - CarameloPreSale: The presale contract that manages the sale of tokens.
  * - RejectEther: A contract used to reject any ether sent to it, ensuring no accidental transfers.
  *
@@ -20,22 +21,13 @@ import {CarameloPreSale} from '../contracts/CarameloPreSale.sol';
  *
  * - Deployment and initialization of the CarameloPreSale contract.
  * - Participation in the presale by different users.
- * - Handling of invalid participation attempts (e.g., insufficient funds, invalid token amounts).
+ * - Handling of invalid participation attempts (e.g., insufficient funds, invalid carameloContract amounts).
  * - Finalization of the presale and distribution of tokens.
  * - Ensuring the state and functionality are preserved throughout the presale process.
  *
  * The test suite also includes various utility functions and event checks to ensure the correctness of the presale process.
  */
 
-error InsufficientFunds(uint256 required, uint256 available);
-error InvalidPhase();
-error PreSaleNotActive();
-error NoTokensAvailable();
-error InvalidTokenAmount();
-error PreSaleAlreadyInitialized();
-error ZeroAddress();
-error WithdrawalFailed();
-error MaxTokensBuyExceeded(uint256 allowed, uint256 attempted);
 // Reject ether
 contract RejectEther {
     fallback() external payable {
@@ -47,8 +39,11 @@ contract RejectEther {
     }
 }
 
-contract TokenPresaleTest is Test {
-    Token public token;
+/**
+ * @dev This contract is a test suite for the CarameloPreSale contract.
+ */
+contract CarameloPreSaleTest is Test {
+    Caramelo public carameloContract;
     CarameloPreSale public carameloPreSale;
 
     address public owner;
@@ -64,7 +59,7 @@ contract TokenPresaleTest is Test {
     uint256 private presaleWalletPrivateKey;
 
     // ------------------------------------------------------------------------
-    /** @dev Token Constructor parameters */
+    /** @dev Caramelo Constructor parameters */
     struct TokenParams {
         string name;
         string symbol;
@@ -76,39 +71,47 @@ contract TokenPresaleTest is Test {
         uint256 numTokensSellToAddToLiquidity;
     }
 
+    /** @dev PreSale Constructor parameters */
     struct PreSaleParams {
         uint256 ratePhase1;
         uint256 ratePhase2;
         uint256 ratePhase3;
         uint256 tokensAvailable;
+        uint256 maxTokensBuy;
     }
 
+    /** @dev Token parameters */
     TokenParams public tokenParams =
         TokenParams({
-            name: 'Token',
+            name: 'Caramelo',
             symbol: 'TKN',
-            initialSupply: 420_000_000_000,
+            initialSupply: 420_000_000_000_000,
             decimals: 6,
-            taxFee: 5,
-            liquidityFee: 5,
-            maxTokensTXAmount: 21_000_000_000 * 10 ** 6, // 5% of initial supply
-            numTokensSellToAddToLiquidity: 84_000_000_000 * 10 ** 6 // 20% of initial supply
+            taxFee: 50000, // 5%
+            liquidityFee: 50000, // 5%
+            maxTokensTXAmount: 84_000_000_000 * 10 ** 6, // 20% de 420_000_000_000_000
+            numTokensSellToAddToLiquidity: 16_800_000_000 * 10 ** 6 // 40% de 420_000_000_000_000
         });
 
+    /** @dev PreSale parameters */
     PreSaleParams public preSaleParams =
         PreSaleParams({
             ratePhase1: 100_000_000 * 10 ** 6, // 1 BNB = 100,000 tokens
             ratePhase2: 60_000_000 * 10 ** 6, // 1 BNB = 60,000 tokens
             ratePhase3: 50_000_000 * 10 ** 6, // 1 BNB = 50,000 tokens
-            tokensAvailable: 84_000_000_000 * 10 ** 6 // 20% of total supply
+            tokensAvailable: 84_000_000_000 * 10 ** 6, // 20% of total supply
+            maxTokensBuy: 4_200_000_000 * 10 ** 6 // 5% of 84,000,000,000
         });
     // ------------------------------------------------------------------------
 
+    /** @dev Setup function */
     function setUp() public {
-        // Configurando o fork corretamente
+        /*
+         * @dev Create a fork of the BSC network
+         */
         vm.createSelectFork('https://bsc-dataseed.binance.org/');
 
-        // Criando usuários fictícios
+        /// @dev makes an address and a private key
         (owner, ownerPrivateKey) = makeAddrAndKey('owner');
         (userA, userAPrivateKey) = makeAddrAndKey('userA');
         (userB, userBPrivateKey) = makeAddrAndKey('userB');
@@ -116,9 +119,9 @@ contract TokenPresaleTest is Test {
             'presaleWallet'
         );
 
-        // Criando e inicializando o token
+        /// @dev starts the prank of the owner
         vm.startPrank(owner);
-        token = new Token(
+        carameloContract = new Caramelo(
             tokenParams.name,
             tokenParams.symbol,
             tokenParams.initialSupply,
@@ -130,29 +133,34 @@ contract TokenPresaleTest is Test {
         );
         vm.stopPrank();
 
-        // Criando o contrato de pré-venda
+        /// @dev starts the prank of the owner
         vm.startPrank(owner);
         carameloPreSale = new CarameloPreSale(
-            address(token),
+            address(carameloContract),
             preSaleParams.ratePhase1,
             preSaleParams.ratePhase2,
             preSaleParams.ratePhase3,
-            preSaleParams.tokensAvailable
+            preSaleParams.tokensAvailable,
+            preSaleParams.maxTokensBuy
         );
 
-        // IMPORTANTE: Excluir a pré-venda das taxas ANTES de transferir os tokens
-        token.excludeFromFee(address(carameloPreSale));
-        token.excludeFromFee(presaleWallet);
+        /// @dev Exclude the pre-sale from the fees before transferring the tokens
+        carameloContract.excludeFromFee(address(carameloPreSale));
+        carameloContract.excludeFromFee(presaleWallet);
 
-        // Agora transfere os tokens para o contrato de pré-venda
-        token.transfer(address(carameloPreSale), preSaleParams.tokensAvailable);
+        /// @dev Transfer the tokens to the pre-sale contract
+        carameloContract.transfer(
+            address(carameloPreSale),
+            preSaleParams.tokensAvailable
+        );
         console.log(
             'Tokens transferidos para o contrato de pre-venda:',
-            token.balanceOf(address(carameloPreSale))
+            carameloContract.balanceOf(address(carameloPreSale))
         );
         vm.stopPrank();
     }
 
+    /** @dev Test function to withdraw funds */
     function testWithdrawFunds() public {
         console.log('-------------------------------------------------');
         console.log('---------------- TEST WITHDRAW FUNDS -------------');
@@ -194,6 +202,7 @@ contract TokenPresaleTest is Test {
     // ------------------------------------------------------------------------
     // Buy tokens
     // ------------------------------------------------------------------------
+    /** @dev Test function to buy tokens on Phase 1 */
     function testBuyTokensOnPhase1() public {
         console.log('-------------------------------------------------');
         console.log(
@@ -208,7 +217,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         // Verificar estado inicial
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 initialContractBalance = address(carameloPreSale).balance;
         uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -240,7 +249,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         // Verificar estado após a compra
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         uint256 finalContractBalance = address(carameloPreSale).balance;
         uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -272,6 +281,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy tokens on Phase 2 */
     function testBuyTokensOnPhase2() public {
         console.log('-------------------------------------------------');
         console.log(
@@ -287,10 +297,10 @@ contract TokenPresaleTest is Test {
 
         // Atualizar a fase
         vm.startPrank(owner);
-        carameloPreSale.updatePhase(CarameloPreSale.Phase.Phase2);
+        carameloPreSale.updatePhase(Phase.Phase2);
         vm.stopPrank();
 
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 initialContractBalance = address(carameloPreSale).balance;
         uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -318,7 +328,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         // Verificar estado após a compra
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         uint256 finalContractBalance = address(carameloPreSale).balance;
         uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -352,6 +362,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy tokens on Phase 3 */
     function testBuyTokenOnPhase3() public {
         console.log('-------------------------------------------------');
         console.log(
@@ -362,10 +373,10 @@ contract TokenPresaleTest is Test {
 
         // Set phase to Phase3
         vm.startPrank(owner);
-        carameloPreSale.updatePhase(CarameloPreSale.Phase.Phase3);
+        carameloPreSale.updatePhase(Phase.Phase3);
         vm.stopPrank();
 
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 initialContractBalance = address(carameloPreSale).balance;
         uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -389,7 +400,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         // Verificar estado após a compra
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         uint256 finalContractBalance = address(carameloPreSale).balance;
         uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -423,6 +434,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy tokens on multiple phases */
     function testMultipleBuys() public {
         console.log('-------------------------------------------------');
         console.log('---------------- TEST MULTIPLE BUYS ----------------');
@@ -432,10 +444,10 @@ contract TokenPresaleTest is Test {
         // Inicializar a pré-venda
         vm.startPrank(owner);
         carameloPreSale.initializePreSale();
-        carameloPreSale.updatePhase(CarameloPreSale.Phase.Phase3);
+        carameloPreSale.updatePhase(Phase.Phase3);
         vm.stopPrank();
 
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 initialContractBalance = address(carameloPreSale).balance;
         uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -473,7 +485,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         // Verificar estado após as compras
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         uint256 finalContractBalance = address(carameloPreSale).balance;
         uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
 
@@ -508,8 +520,10 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
     // ------------------------------------------------------------------------
+    // End of tests for buyTokens
     // ------------------------------------------------------------------------
 
+    /** @dev Test function to revert if the address is zero */
     function testRevertZeroAddress() public {
         console.log('-------------------------------------------------');
         console.log('------------ TEST REVERT ZERO ADDRESS ------------');
@@ -525,12 +539,14 @@ contract TokenPresaleTest is Test {
             preSaleParams.ratePhase1,
             preSaleParams.ratePhase2,
             preSaleParams.ratePhase3,
-            preSaleParams.tokensAvailable
+            preSaleParams.tokensAvailable,
+            preSaleParams.maxTokensBuy
         );
         vm.stopPrank();
         console.log('\n');
     }
 
+    /** @dev Test function to revert if the pre-sale is already initialized */
     function testRevertPreSaleAlreadyInitialized() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST REVERT ALREADY INITIALIZED --------');
@@ -542,12 +558,19 @@ contract TokenPresaleTest is Test {
         carameloPreSale.initializePreSale();
 
         console.log('--> Tentando inicializar pre-venda novamente');
-        vm.expectRevert(PreSaleAlreadyInitialized.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PreSaleAlreadyInitialized.selector,
+                'The presale Already initialized with: ',
+                preSaleParams.tokensAvailable
+            )
+        );
         carameloPreSale.initializePreSale();
         vm.stopPrank();
         console.log('\n');
     }
 
+    /** @dev Test function to revert if the token amount is invalid */
     function testRevertInvalidTokenAmount() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST REVERT INVALID TOKEN AMOUNT --------');
@@ -557,30 +580,38 @@ contract TokenPresaleTest is Test {
         // Criar uma nova instância do contrato sem transferir tokens
         vm.startPrank(owner);
         CarameloPreSale newPreSale = new CarameloPreSale(
-            address(token),
+            address(carameloContract),
             preSaleParams.ratePhase1,
             preSaleParams.ratePhase2,
             preSaleParams.ratePhase3,
-            preSaleParams.tokensAvailable
+            preSaleParams.tokensAvailable,
+            preSaleParams.maxTokensBuy
         );
 
         uint256 halfTokens = preSaleParams.tokensAvailable / 2;
         console.log('--> Tokens necessarios:', preSaleParams.tokensAvailable);
         console.log('--> Transferindo apenas:', halfTokens);
 
-        token.transfer(address(newPreSale), halfTokens);
+        carameloContract.transfer(address(newPreSale), halfTokens);
         console.log(
             '--> Saldo atual do contrato:',
-            token.balanceOf(address(newPreSale))
+            carameloContract.balanceOf(address(newPreSale))
         );
 
         console.log('--> Tentando inicializar com tokens insuficientes');
-        vm.expectRevert(InvalidTokenAmount.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidTokenAmount.selector,
+                'Invalid token amount: ',
+                halfTokens
+            )
+        );
         newPreSale.initializePreSale();
         vm.stopPrank();
         console.log('\n');
     }
 
+    /** @dev Test function to revert if the pre-sale is not active */
     function testRevertPreSaleNotActive() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST REVERT PRESALE NOT ACTIVE --------');
@@ -615,6 +646,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to revert if no tokens are available */
     function testRevertNoTokensAvailable() public {
         console.log('-------------------------------------------------');
         console.log('-------- TEST REVERT NO TOKENS AVAILABLE --------');
@@ -624,10 +656,17 @@ contract TokenPresaleTest is Test {
         vm.startPrank(owner);
         console.log('--> Inicializando pre-venda');
         carameloPreSale.initializePreSale();
+
+        /// @dev Add userA to whitelist to ignore maxTokensBuy
+        console.log('--> Adicionando userA a whitelist');
+        carameloPreSale.addToWhitelist(userA);
         vm.stopPrank();
 
-        uint256 bnbRequired = (preSaleParams.tokensAvailable * 1 ether) /
+        uint256 tokensAvailable = carameloPreSale.tokensRemaining();
+        uint256 bnbRequired = (tokensAvailable * 1 ether) /
             preSaleParams.ratePhase1;
+
+        console.log('--> Tokens disponiveis:', tokensAvailable);
         console.log(
             '--> BNB necessarios para comprar todos tokens:',
             bnbRequired
@@ -639,13 +678,33 @@ contract TokenPresaleTest is Test {
         console.log('--> Comprando todos os tokens disponiveis');
         carameloPreSale.buyTokens{value: bnbRequired}();
 
-        console.log('--> Tentando comprar mais tokens');
-        vm.expectRevert(NoTokensAvailable.selector);
-        carameloPreSale.buyTokens{value: 1 ether}();
+        /// @dev Calculate the attempted purchase
+        uint256 additionalBnb = 1 ether;
+        uint256 attemptedPurchase = (additionalBnb * preSaleParams.ratePhase1) /
+            1 ether;
+
+        console.log('\n--> Tentando comprar mais tokens');
+        console.log('    Tentativa de compra:', attemptedPurchase);
+        console.log(
+            '    Tokens disponiveis:',
+            carameloPreSale.tokensRemaining()
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NoTokensAvailable.selector,
+                'Insufficient tokens available in presale. Available: ',
+                0,
+                attemptedPurchase
+            )
+        );
+        carameloPreSale.buyTokens{value: additionalBnb}();
         vm.stopPrank();
+
         console.log('\n');
     }
 
+    /** @dev Test function to revert if the withdrawal fails */
     function testRevertWithdrawalFailed() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST REVERT WITHDRAWAL FAILED ---------');
@@ -663,7 +722,7 @@ contract TokenPresaleTest is Test {
         carameloPreSale.buyTokens{value: 1 ether}();
         vm.stopPrank();
 
-        // Criar um contrato malicioso que rejeita pagamentos
+        /// @dev Create a malicious contract that rejects payments
         console.log('--> Criando contrato malicioso');
         RejectEther rejectEther = new RejectEther();
 
@@ -673,13 +732,13 @@ contract TokenPresaleTest is Test {
             address(carameloPreSale).balance
         );
 
-        // Definir o endereço do contrato malicioso como destinatário dos fundos
-        // mas mantendo o owner como dono do contrato
+        /// @dev Set the malicious contract address as the recipient of the funds
+        /// but keep the owner as the contract owner
         console.log(
             '--> Tentando realizar withdrawal para contrato que rejeita ETH'
         );
 
-        // Forçar a falha na transferência
+        /// @dev Force the transfer to fail
         vm.etch(owner, address(rejectEther).code);
 
         vm.expectRevert(WithdrawalFailed.selector);
@@ -688,6 +747,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy tokens on whitelist with higher limit */
     function testWhitelistPurchaseWithHigherLimit() public {
         console.log('-------------------------------------------------');
         console.log(
@@ -705,7 +765,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify initial state
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 initialTokensAvailable = carameloPreSale.tokensRemaining();
         console.log(
             '--> Saldo inicial de tokens do user A:',
@@ -724,7 +784,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify final state
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         uint256 finalTokensAvailable = carameloPreSale.tokensRemaining();
 
         console.log('--> Saldo final de tokens do user A:', finalTokenBalance);
@@ -743,6 +803,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to verify that non-whitelist users respect the maxTokensBuy limit */
     function testNonWhitelistUserRespectsMaxTokensBuy() public {
         console.log('-------------------------------------------------');
         console.log(
@@ -761,7 +822,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify initial state
-        uint256 initialTokenBalance = token.balanceOf(userB);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userB);
 
         /// @dev calculate bnb amount to buy more than the allowed limit
         uint256 bnbAmount = ((newMaxTokensBuy + 1) * 1 ether) /
@@ -781,7 +842,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify final state
-        uint256 finalTokenBalance = token.balanceOf(userB);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userB);
         assertEq(
             finalTokenBalance,
             initialTokenBalance,
@@ -790,6 +851,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to update the maxTokensBuy */
     function testUpdateMaxTokensBuy() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST UPDATE MAX TOKENS BUY ---------');
@@ -815,6 +877,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to add and remove from whitelist */
     function testAddAndRemoveFromWhitelist() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST ADD AND REMOVE FROM WHITELIST ---------');
@@ -841,6 +904,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy after whitelist removal */
     function testBuyAfterWhitelistRemoval() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST BUY AFTER WHITELIST REMOVAL ---------');
@@ -857,7 +921,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify initial state
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
 
         /// @dev try to buy more than maxTokensBuy
         uint256 newMaxTokensBuy = 2_000 * 10 ** 6;
@@ -883,7 +947,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify final state
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
         assertEq(
             finalTokenBalance,
             initialTokenBalance,
@@ -892,6 +956,7 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to revert if the user tries to buy more than available tokens */
     function testBuyMoreThanAvailableTokens() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST BUY MORE THAN AVAILABLE TOKENS ---------');
@@ -904,21 +969,28 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify initial state
-        uint256 tokensAvailable = carameloPreSale.tokensRemaining();
-
-        /// @dev try to buy more tokens than available
-        uint256 bnbAmount = ((tokensAvailable + 1) * 1 ether) /
+        uint256 availableTokens = carameloPreSale.tokensRemaining();
+        // Tentar comprar 1 carameloContract a mais que o disponível
+        uint256 tokensToTransfer = availableTokens + 1;
+        uint256 bnbToSend = (tokensToTransfer * 1 ether) /
             preSaleParams.ratePhase1;
-        vm.deal(userA, bnbAmount);
+
+        vm.deal(userA, bnbToSend);
         vm.startPrank(userA);
 
-        vm.expectRevert(NoTokensAvailable.selector);
-        carameloPreSale.buyTokens{value: bnbAmount}();
-
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NoTokensAvailable.selector,
+                'Insufficient tokens available in presale. Available: ',
+                availableTokens,
+                tokensToTransfer
+            )
+        );
+        carameloPreSale.buyTokens{value: bnbToSend}();
         vm.stopPrank();
-        console.log('\n');
     }
 
+    /** @dev Test function to revert if the user buys tokens without updating the phase */
     function testBuyWithoutPhaseUpdate() public {
         console.log('-------------------------------------------------');
         console.log('--------- TEST BUY WITHOUT PHASE UPDATE ---------');
@@ -931,7 +1003,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify initial state
-        uint256 initialTokenBalance = token.balanceOf(userA);
+        uint256 initialTokenBalance = carameloContract.balanceOf(userA);
         uint256 ratePhase1 = preSaleParams.ratePhase1;
 
         /// @dev buy tokens without updating phase
@@ -944,7 +1016,7 @@ contract TokenPresaleTest is Test {
         vm.stopPrank();
 
         /// @dev verify final state
-        uint256 finalTokenBalance = token.balanceOf(userA);
+        uint256 finalTokenBalance = carameloContract.balanceOf(userA);
 
         assertEq(
             finalTokenBalance,
@@ -954,6 +1026,69 @@ contract TokenPresaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to buy exact maxTokensBuy */
+    function testBuyExactMaxTokensBuy() public {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST BUY EXACT MAX TOKENS BUY ---------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev initializePreSale
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+
+        /// @dev calculate exact BNB for maxTokensBuy
+        uint256 bnbAmount = (preSaleParams.maxTokensBuy * 1 ether) /
+            preSaleParams.ratePhase1;
+        uint256 expectedTokens = (bnbAmount * preSaleParams.ratePhase1) /
+            1 ether;
+        vm.stopPrank();
+
+        vm.deal(userA, bnbAmount);
+        vm.startPrank(userA);
+
+        /// @dev attempt to buy exact maxTokensBuy
+        carameloPreSale.buyTokens{value: bnbAmount}();
+        vm.stopPrank();
+
+        uint256 userTokens = carameloContract.balanceOf(userA);
+        assertEq(
+            userTokens,
+            expectedTokens,
+            'O saldo do user A deve ser igual ao limite max permitido.'
+        );
+        console.log('\n');
+    }
+
+    /** @dev Test function to revert if the phase rate is zero */
+    function testRevertWhenPhaseRateIsZero() public {
+        console.log('-------------------------------------------------');
+        console.log('-------- TEST REVERT WHEN PHASE RATE IS ZERO --------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev Inicializa a pré-venda
+        vm.startPrank(owner);
+        console.log('--> Inicializando pre-venda');
+        carameloPreSale.initializePreSale();
+
+        /// @dev Tenta atualizar a taxa da fase atual para zero
+        console.log('--> Tentando atualizar taxa da fase atual para zero');
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidPhaseRate.selector,
+                'Invalid phase rate: ',
+                0
+            )
+        );
+        carameloPreSale.updatePhaseRate(Phase.Phase1, 0);
+        vm.stopPrank();
+
+        console.log('\n');
+    }
+
     // ------------------------------------------------------------------------
+    // ----------------------- END OF TESTS ----------------------------------
     // ------------------------------------------------------------------------
 }
