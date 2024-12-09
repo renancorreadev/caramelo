@@ -7,6 +7,13 @@ The Caramelo Token is a comprehensive ERC20-compliant token designed for advance
 
 ---
 
+## Setup Workflow 
+
+<p align="center">
+  <img src="docs/workflow.png" alt="Caramelo Token Logo">
+</p>
+
+
 ## Features
 
 - **Tax System**:
