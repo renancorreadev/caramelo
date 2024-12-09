@@ -6,8 +6,25 @@ interface IUniswapV2Router02 {
 
     function factory() external pure returns (address);
 
-    // Swap functions
+    /// @dev swap exact tokens for ETH supporting fee on transfer tokens
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external;
+
+    /// @dev swap exact ETH for tokens supporting fee on transfer tokens
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable;
+
+    /// @dev swap exact tokens for tokens supporting fee on transfer tokens
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -31,14 +48,6 @@ interface IUniswapV2Router02 {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external;
-
     function swapTokensForExactETH(
         uint256 amountOut,
         uint256 amountInMax,
@@ -61,13 +70,6 @@ interface IUniswapV2Router02 {
         uint256 deadline
     ) external payable returns (uint256[] memory amounts);
 
-    function swapExactETHForTokensSupportingFeeOnTransferTokens(
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external payable;
-
     // Liquidity functions
     function addLiquidity(
         address tokenA,
@@ -78,11 +80,7 @@ interface IUniswapV2Router02 {
         uint256 amountBMin,
         address to,
         uint256 deadline
-    ) external returns (
-        uint256 amountA,
-        uint256 amountB,
-        uint256 liquidity
-    );
+    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 
     function addLiquidityETH(
         address token,
@@ -91,11 +89,10 @@ interface IUniswapV2Router02 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) external payable returns (
-        uint256 amountToken,
-        uint256 amountETH,
-        uint256 liquidity
-    );
+    )
+        external
+        payable
+        returns (uint256 amountToken, uint256 amountETH, uint256 liquidity);
 
     function removeLiquidity(
         address tokenA,
@@ -105,10 +102,7 @@ interface IUniswapV2Router02 {
         uint256 amountBMin,
         address to,
         uint256 deadline
-    ) external returns (
-        uint256 amountA,
-        uint256 amountB
-    );
+    ) external returns (uint256 amountA, uint256 amountB);
 
     function removeLiquidityETH(
         address token,
@@ -117,10 +111,7 @@ interface IUniswapV2Router02 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) external returns (
-        uint256 amountToken,
-        uint256 amountETH
-    );
+    ) external returns (uint256 amountToken, uint256 amountETH);
 
     function removeLiquidityWithPermit(
         address tokenA,
@@ -134,10 +125,7 @@ interface IUniswapV2Router02 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (
-        uint256 amountA,
-        uint256 amountB
-    );
+    ) external returns (uint256 amountA, uint256 amountB);
 
     function removeLiquidityETHWithPermit(
         address token,
@@ -150,10 +138,7 @@ interface IUniswapV2Router02 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (
-        uint256 amountToken,
-        uint256 amountETH
-    );
+    ) external returns (uint256 amountToken, uint256 amountETH);
 
     function removeLiquidityETHSupportingFeeOnTransferTokens(
         address token,
@@ -208,9 +193,15 @@ interface IUniswapV2Router02 {
 }
 
 interface IUniswapV2Factory {
-    function createPair(address tokenA, address tokenB) external returns (address pair);
+    function createPair(
+        address tokenA,
+        address tokenB
+    ) external returns (address pair);
 
-    function getPair(address tokenA, address tokenB) external view returns (address pair);
+    function getPair(
+        address tokenA,
+        address tokenB
+    ) external view returns (address pair);
 
     function allPairs(uint256) external view returns (address pair);
 
@@ -223,4 +214,14 @@ interface IUniswapV2Factory {
     function setFeeTo(address) external;
 
     function setFeeToSetter(address) external;
+}
+interface IUniswapV2Pair {
+    function getReserves()
+        external
+        view
+        returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+
+    function token0() external view returns (address);
+
+    function token1() external view returns (address);
 }

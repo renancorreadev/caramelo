@@ -1088,6 +1088,146 @@ contract CarameloPreSaleTest is Test {
         console.log('\n');
     }
 
+    /** @dev Test function to add multiple addresses to the whitelist */
+    function testAddMultipleToWhitelist() public {
+        console.log('-------------------------------------------------');
+        console.log('------ TEST ADD MULTIPLE TO WHITELIST -----------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        address[] memory accounts = new address[](3);
+        accounts[0] = userA;
+        accounts[1] = userB;
+        accounts[2] = presaleWallet;
+
+        vm.startPrank(owner);
+        carameloPreSale.addMultipleToWhitelist(accounts);
+        vm.stopPrank();
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            assertTrue(
+                carameloPreSale.whitelist(accounts[i]),
+                "Address should be whitelisted"
+            );
+        }
+
+        // Test with empty array
+        address[] memory emptyArray = new address[](0);
+        vm.startPrank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidTokenAmount.selector,
+                "Empty array provided: ",
+                0
+            )
+        );
+        carameloPreSale.addMultipleToWhitelist(emptyArray);
+        vm.stopPrank();
+
+        // Test with array containing zero address
+        address[] memory invalidArray = new address[](1);
+        invalidArray[0] = address(0);
+        vm.startPrank(owner);
+        vm.expectRevert(ZeroAddress.selector);
+        carameloPreSale.addMultipleToWhitelist(invalidArray);
+        vm.stopPrank();
+
+        console.log('\n');
+    }
+
+    /** @dev Test function to add multiple addresses to the whitelist and buy above max */
+    function testAddMultipleToWhitelistAndBuyAboveMax() public {
+        console.log('-------------------------------------------------');
+        console.log('------ TEST MULTIPLE WHITELIST BUY ABOVE MAX ----');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        /// @dev Setup 10 addresses to whitelist
+        address[] memory accounts = new address[](10);
+        accounts[0] = makeAddr("investor1");
+        accounts[1] = makeAddr("investor2");
+        accounts[2] = makeAddr("investor3");
+        accounts[3] = makeAddr("investor4");
+        accounts[4] = makeAddr("investor5");
+        accounts[5] = makeAddr("investor6");
+        accounts[6] = makeAddr("investor7");
+        accounts[7] = makeAddr("investor8");
+        accounts[8] = makeAddr("investor9");
+        accounts[9] = makeAddr("investor10");
+
+        /// @dev Log all addresses
+        console.log("Generated addresses for whitelist:");
+        for(uint256 i = 0; i < accounts.length; i++) {
+            console.log(string.concat("Investor ", vm.toString(i + 1), ": ", vm.toString(accounts[i])));
+        }
+        console.log("\n");
+
+        /// @dev Initialize presale and add multiple addresses to whitelist
+        vm.startPrank(owner);
+        carameloPreSale.initializePreSale();
+        carameloContract.transfer(address(carameloPreSale), carameloPreSale.tokensRemaining());
+        carameloPreSale.addMultipleToWhitelist(accounts);
+        vm.stopPrank();
+
+        /// @dev Setup purchase amounts
+        uint256 maxTokensBuy = carameloPreSale.maxTokensBuy();
+        uint256 amountAboveMax = maxTokensBuy * 2; // Try to buy double the max
+        uint256 bnbNeeded = (amountAboveMax * 1 ether) / preSaleParams.ratePhase1;
+
+        console.log("Max tokens buy limit:", maxTokensBuy);
+        console.log("Attempting to buy:", amountAboveMax);
+        console.log("BNB needed:", bnbNeeded);
+
+        /// @dev Test non-whitelisted address first
+        address nonWhitelisted = makeAddr("nonWhitelisted");
+        vm.deal(nonWhitelisted, bnbNeeded);
+        
+        vm.startPrank(nonWhitelisted);
+        console.log("\nTesting purchase for non-whitelisted address:", nonWhitelisted);
+        
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MaxTokensBuyExceeded.selector,
+                maxTokensBuy,
+                amountAboveMax
+            )
+        );
+        carameloPreSale.buyTokens{value: bnbNeeded}();
+        vm.stopPrank();
+        
+        /// @dev Test purchase for each whitelisted address
+        for(uint256 i = 0; i < accounts.length; i++) {
+            address buyer = accounts[i];
+            console.log("\nTesting purchase for Investor", i + 1, ":", buyer);
+            
+            uint256 initialBalance = carameloContract.balanceOf(buyer);
+            vm.deal(buyer, bnbNeeded);
+            
+            vm.startPrank(buyer);
+            carameloPreSale.buyTokens{value: bnbNeeded}();
+            vm.stopPrank();
+            
+            uint256 finalBalance = carameloContract.balanceOf(buyer);
+            uint256 purchased = finalBalance - initialBalance;
+            
+            console.log("Initial balance:", initialBalance);
+            console.log("Final balance:", finalBalance);
+            console.log("Tokens purchased:", purchased);
+            
+            assertTrue(
+                purchased > maxTokensBuy,
+                "Whitelisted address should be able to buy above maxTokensBuy"
+            );
+            
+            assertTrue(
+                purchased == amountAboveMax,
+                "Should receive exact amount requested"
+            );
+        }
+
+        console.log('\n');
+    }
+
     // ------------------------------------------------------------------------
     // ----------------------- END OF TESTS ----------------------------------
     // ------------------------------------------------------------------------

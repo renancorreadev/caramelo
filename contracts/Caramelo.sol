@@ -11,7 +11,7 @@ import {
     NotExcluded,
     FeesExceeded,
     ContractLocked,
-    UniswapAlreadyConfigured,
+    SwapProtocolAlreadyConfigured,
     MaxTransactionExceeded,
     InsufficientBalance,
     InvalidTaxFee,
@@ -26,44 +26,15 @@ import {
     TransferAmountZero,
     TransferAmountExceedsMax,
     ZeroValue,
-    InvalidTokenomicsPercentage
+    InvalidTokenomicsPercentage,
+    BurnExceedsTotalSupply
 } from './utils/CarameloErrors.sol';
 
-interface IUniswapV2Router02 {
-    function factory() external pure returns (address);
-    function WETH() external pure returns (address);
-
-    function addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    )
-        external
-        payable
-        returns (uint amountToken, uint amountETH, uint liquidity);
-
-    function swapExactTokensForETHSupportingFeeOnTransferTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external;
-}
-
-interface IUniswapV2Factory {
-    function createPair(
-        address tokenA,
-        address tokenB
-    ) external returns (address pair);
-}
+import {IUniswapV2Router02, IUniswapV2Factory} from './interfaces/UniswapV2Interfaces.sol';
 
 contract Caramelo is Ownable, ReentrancyGuard {
     uint256 private constant MAX = ~uint256(0);
-    uint256 private constant FEE_DIVISOR = 100000; 
+    uint256 private constant FEE_DIVISOR = 100000;
 
     uint256 private _tTotal;
     uint256 private _rTotal;
@@ -91,7 +62,7 @@ contract Caramelo is Ownable, ReentrancyGuard {
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
-    // Eventos
+    /** @dev Events */
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(
         address indexed owner,
@@ -125,18 +96,20 @@ contract Caramelo is Ownable, ReentrancyGuard {
         uint256 liquidity
     );
 
+    /** @dev Modifier to lock the swap */
     modifier lockTheSwap() {
         inSwapAndLiquify = true;
         _;
         inSwapAndLiquify = false;
     }
 
+    /** @dev Tokenomics configuration */
     struct TokenomicsConfig {
         address wallet;
         uint256 percentage;
     }
 
-    /// @dev Tokenomics configuration
+    /**  @dev Tokenomics configuration */
     TokenomicsConfig[6] public tokenomics;
 
     constructor(
@@ -169,21 +142,26 @@ contract Caramelo is Ownable, ReentrancyGuard {
             _numTokensSellToAddToLiquidity *
             10 ** _decimals;
 
-        _rOwned[_msgSender()] = _rTotal; 
+        _rOwned[_msgSender()] = _rTotal;
         _isExcludedFromFee[_msgSender()] = true;
         _isExcludedFromFee[address(this)] = true;
 
         emit Transfer(address(0), _msgSender(), _tTotal);
     }
 
+    /** @dev Getters */
+
+    /** @dev Get name of token   */
     function name() public view returns (string memory) {
         return _name;
     }
 
+    /** @dev Get symbol of token */
     function symbol() public view returns (string memory) {
         return _symbol;
     }
 
+    /** @dev Get reflection balance of an account */
     function reflectionBalanceOf(
         address account
     ) public view returns (uint256) {
@@ -191,10 +169,12 @@ contract Caramelo is Ownable, ReentrancyGuard {
         return _rOwned[account] / _getRate();
     }
 
+    /** @dev Get decimals of token */
     function decimals() public view returns (uint8) {
         return _decimals;
     }
 
+    /** @dev Get allowance of an account */
     function allowance(
         address owner,
         address spender
@@ -202,10 +182,12 @@ contract Caramelo is Ownable, ReentrancyGuard {
         return _allowances[owner][spender];
     }
 
+    /** @dev Get total supply of token */
     function totalSupply() public view returns (uint256) {
         return _tTotal;
     }
 
+    /** @dev Get balance of an account */
     function balanceOf(address account) public view returns (uint256) {
         if (_rOwned[account] == 0) {
             return 0;
@@ -213,18 +195,21 @@ contract Caramelo is Ownable, ReentrancyGuard {
         return _rOwned[account] / _getRate();
     }
 
+    /** @dev Initialize tokenomics */
+    /** 
+        @notice this function execute one 
+    */
     function initializeTokenomics() external onlyOwner {
-        if (!initTokenomics) {
-            revert TokenomicsAlreadyInitialized("Tokenomics already initialized!");
+        if (initTokenomics) {
+            revert TokenomicsAlreadyInitialized(
+                'Tokenomics already initialized!'
+            );
         }
-
-        initTokenomics = true;
-
         /// @dev Tokenomics Transfers
         /// --> @dev Community Wallet
         tokenomics[0] = TokenomicsConfig({
-            wallet: 0x770A14689463D15e7f2f28c581CC61FAf076E35c, // Community Wallet
-            percentage: 50 // 50% percentage 
+            wallet: msg.sender, // Community Wallet is deployer
+            percentage: 50 // 50% percentage
         });
         /// --> @dev ONG Wallet
         tokenomics[1] = TokenomicsConfig({
@@ -268,8 +253,11 @@ contract Caramelo is Ownable, ReentrancyGuard {
 
             _transfer(_msgSender(), tokenomics[i].wallet, allocation);
         }
+
+        initTokenomics = true;
     }
 
+    /** @dev Transfer tokens */
     function transfer(
         address recipient,
         uint256 amount
@@ -277,6 +265,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
+
+    /** @dev Transfer tokens from an account */
     function transferFrom(
         address sender,
         address recipient,
@@ -296,11 +286,13 @@ contract Caramelo is Ownable, ReentrancyGuard {
         return true;
     }
 
+    /** @dev Set max transaction amount */
     function setMaxTxAmount(uint256 newMaxTxAmount) external onlyOwner {
         maxTxAmount = newMaxTxAmount * 10 ** _decimals;
         emit MaxTxAmountUpdated(newMaxTxAmount);
     }
 
+    /** @dev Update Uniswap V2 Router */
     function updateUniswapV2Router(address newRouter) external onlyOwner {
         if (newRouter == address(0)) {
             revert ZeroAddress();
@@ -310,6 +302,7 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit UniswapV2RouterUpdated(newRouter);
     }
 
+    /** @dev Set number of tokens to add to liquidity */
     function setNumTokensSellToAddToLiquidity(
         uint256 newNumTokensSellToAddToLiquidity
     ) external onlyOwner {
@@ -329,12 +322,14 @@ contract Caramelo is Ownable, ReentrancyGuard {
         );
     }
 
+    /** @dev Check if an account is excluded from fee */
     function isAccountExcludedFromFree(
         address account
     ) public view returns (bool) {
         return _isExcludedFromFee[account];
     }
 
+    /** @dev Include an account in fee */
     function includeInFee(address account) external onlyOwner {
         if (!_isExcludedFromFee[account]) {
             revert NotExcluded();
@@ -343,6 +338,7 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit IncludedInFee(account);
     }
 
+    /** @dev Exclude an account from fee */
     function excludeFromFee(address account) external onlyOwner {
         if (_isExcludedFromFee[account]) {
             revert AlreadyExcluded();
@@ -352,6 +348,18 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit ExcludedFromFee(account);
     }
 
+    /** @dev Burn tokens */
+    /** @param amount: Amount of tokens to burn */
+    function burn(uint256 amount) external onlyOwner {
+        _burn(amount);
+    }
+
+    /** 
+        @notice Set fees for tax and liquidity
+        @param _taxFee: Tax fee
+        @param _liquidityFee: Liquidity fee
+        @dev Total fee cannot exceed FEE_DIVISOR
+    */
     function setFees(
         uint256 _taxFee,
         uint256 _liquidityFee
@@ -366,11 +374,20 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit FeesUpdated(_taxFee, _liquidityFee);
     }
 
+    /** @notice Approve an allowance for a spender
+     * @param spender Address of the spender
+     * @param amount Amount of tokens to approve
+     * @return A boolean indicating if the approval was successful
+     */
     function approve(address spender, uint256 amount) public returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
 
+    /** @dev Internal function to approve an allowance for a spender */
+    /** @param owner: Address of the owner */
+    /** @param spender: Address of the spender */
+    /** @param amount: Amount of tokens to approve */
     function _approve(address owner, address spender, uint256 amount) private {
         if (owner == address(0) || spender == address(0)) {
             revert ZeroAddress();
@@ -381,6 +398,10 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit Approval(owner, spender, amount);
     }
 
+    /** @dev Internal function to transfer tokens */
+    /** @param sender: Address of the sender */
+    /** @param recipient: Address of the recipient */
+    /** @param amount: Amount of tokens to transfer */
     function _transfer(
         address sender,
         address recipient,
@@ -391,8 +412,7 @@ contract Caramelo is Ownable, ReentrancyGuard {
         if (amount == 0) revert TransferAmountZero();
 
         /// @dev verify if the transfer amount exceeds the maxTxAmount
-        /// @dev the maxTxAmount is not applied in the constructor to distribute the tokenomics
-        if (!initTokenomics && maxTxAmount > 0 && amount > maxTxAmount) {
+        if (sender != owner() && maxTxAmount > 0 && amount > maxTxAmount) {
             revert TransferAmountExceedsMax();
         }
 
@@ -416,7 +436,7 @@ contract Caramelo is Ownable, ReentrancyGuard {
             tFee = (amount * taxFee) / FEE_DIVISOR;
 
             /// @dev Burn 30% of the taxFee
-            tBurn = (tFee * 30000) / FEE_DIVISOR;  // 30% using FEE_DIVISOR
+            tBurn = (tFee * 30000) / FEE_DIVISOR; // 30% using FEE_DIVISOR
 
             /// @dev Distribute 70% of the taxFee to holders
             tFee = tFee - tBurn;
@@ -449,12 +469,14 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit Transfer(sender, recipient, tTransferAmount);
     }
 
-    function configureUniswap(address routerAddress) external onlyOwner {
+    /** @dev Configure Uniswap */
+    /** @param routerAddress: Address of the router */
+    function configureSwapProtocol(address routerAddress) external onlyOwner {
         if (
             address(uniswapV2Router) != address(0) ||
             uniswapV2Pair != address(0)
         ) {
-            revert UniswapAlreadyConfigured();
+            revert SwapProtocolAlreadyConfigured();
         }
         if (routerAddress == address(0)) {
             revert ZeroAddress();
@@ -478,10 +500,15 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit UniswapConfigured(routerAddress, pair);
     }
 
+    /** @dev Check if swap and liquify is enabled */
+    /** @return A boolean indicating if swap and liquify is enabled */
     function isSwapAndLiquifyEnabled() external view returns (bool) {
         return swapAndLiquifyEnabled;
     }
 
+    /** @dev Swap and liquify tokens */
+    /** @param contractTokenBalance: Amount of tokens to swap and liquify */
+    /** @dev Lock the swap to prevent reentrancy */
     function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
         if (contractTokenBalance == 0) {
             revert TokenBalanceZero();
@@ -501,6 +528,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit SwapAndLiquify(half, newBalance, otherHalf);
     }
 
+    /** @dev Set swap and liquify enabled */
+    /** @param _enabled: Boolean indicating if swap and liquify is enabled */
     function setSwapAndLiquifyEnabled(bool _enabled) external onlyOwner {
         if (swapAndLiquifyEnabled == _enabled) {
             revert(
@@ -513,6 +542,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit SwapAndLiquifyEnabledUpdated(_enabled);
     }
 
+    /** @dev Swap tokens for ETH */
+    /** @param tokenAmount: Amount of tokens to swap */
     function swapTokensForEth(uint256 tokenAmount) private {
         address[] memory path = new address[](2);
         path[0] = address(this);
@@ -529,6 +560,9 @@ contract Caramelo is Ownable, ReentrancyGuard {
         );
     }
 
+    /** @dev Add liquidity */
+    /** @param tokenAmount: Amount of tokens to add */
+    /** @param ethAmount: Amount of ETH to add */
     function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
         // Verificar se o router é válido
         if (address(uniswapV2Router) == address(0)) {
@@ -557,6 +591,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit LiquidityAdded(amountToken, amountETH, liquidity);
     }
 
+    /** @dev Withdraw BNB */
+    /** @param amount: Amount of BNB to withdraw */
     function withdrawBNB(uint256 amount) external onlyOwner {
         if (address(this).balance < amount) {
             revert InsufficientBalance(address(this).balance, amount);
@@ -564,6 +600,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         payable(msg.sender).transfer(amount);
     }
 
+    /** @dev Reflect fee */
+    /** @param tFee: Amount of fee to reflect */
     function _reflectFee(uint256 tFee) private {
         uint256 rFee = tFee * _getRate();
         _rTotal -= rFee;
@@ -572,12 +610,20 @@ contract Caramelo is Ownable, ReentrancyGuard {
         emit FeesDistributed(tFee, 0, 0); // Apenas reflexão
     }
 
+    /** @dev Take liquidity fee */
+    /** @param tLiquidity: Amount of liquidity fee to take */
     function _takeLiquidity(uint256 tLiquidity) private {
         uint256 rLiquidity = tLiquidity * _getRate();
         _rOwned[address(this)] += rLiquidity;
     }
 
+    /** @dev Burn tokens */
+    /** @param tBurn: Amount of tokens to burn */
     function _burn(uint256 tBurn) private {
+        /// @dev Check if tBurn exceeds the available total supply
+        if (tBurn > _tTotal) {
+            revert BurnExceedsTotalSupply(tBurn, _tTotal);
+        }
         /// @dev Burn tokens if amount is greater than zero
         if (tBurn > 0) {
             uint256 rBurn = tBurn * _getRate();
@@ -591,6 +637,8 @@ contract Caramelo is Ownable, ReentrancyGuard {
         }
     }
 
+    /** @dev Get rate */
+    /** @return A uint256 representing the rate */
     function _getRate() private view returns (uint256) {
         require(_tTotal > 0, 'Total supply must be greater than zero');
         return _rTotal / _tTotal;

@@ -281,10 +281,10 @@ error FeesExceeded(uint256 totalFees)
 error ContractLocked()
 ```
 
-## UniswapAlreadyConfigured
+## SwapProtocolAlreadyConfigured
 
 ```solidity
-error UniswapAlreadyConfigured()
+error SwapProtocolAlreadyConfigured()
 ```
 
 ## MaxTransactionExceeded
@@ -631,10 +631,10 @@ function setFees(uint256 _taxFee, uint256 _liquidityFee, uint256 _burnFee) exter
 function approve(address spender, uint256 amount) public returns (bool)
 ```
 
-### configureUniswap
+### configureSwapProtocol
 
 ```solidity
-function configureUniswap(address routerAddress) external
+function configureSwapProtocol(address routerAddress) external
 ```
 
 ### isSwapAndLiquifyEnabled

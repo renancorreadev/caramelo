@@ -229,8 +229,8 @@ DA:370,9
 DA:371,9
 DA:372,9
 DA:375,75
-FN:378,Token.configureUniswap
-FNDA:16,Token.configureUniswap
+FN:378,Token.configureSwapProtocol
+FNDA:16,Token.configureSwapProtocol
 DA:380,16
 DA:381,16
 DA:382,0

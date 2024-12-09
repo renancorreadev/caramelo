@@ -5,16 +5,16 @@ import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
 import {
-    Phase, 
-    InsufficientFunds, 
-    InvalidPhase, 
-    PreSaleNotActive, 
-    NoTokensAvailable, 
-    InvalidTokenAmount, 
-    PreSaleAlreadyInitialized, 
-    ZeroAddress, 
-    WithdrawalFailed, 
-    MaxTokensBuyExceeded, 
+    Phase,
+    InsufficientFunds,
+    InvalidPhase,
+    PreSaleNotActive,
+    NoTokensAvailable,
+    InvalidTokenAmount,
+    PreSaleAlreadyInitialized,
+    ZeroAddress,
+    WithdrawalFailed,
+    MaxTokensBuyExceeded,
     InvalidPhaseRate
 } from './utils/CarameloPreSaleErrors.sol';
 
@@ -233,6 +233,30 @@ contract CarameloPreSale is Ownable, ReentrancyGuard {
     function addToWhitelist(address account) external onlyOwner {
         whitelist[account] = true;
         emit AddressWhitelisted(account);
+    }
+
+    /**
+     * @notice Add multiple addresses to the whitelist in a single transaction
+     * @param accounts Array of addresses to add to the whitelist
+     * @dev Uses unchecked to save gas on incrementing i
+     * @dev Emits AddressWhitelisted event for each address
+     */
+    function addMultipleToWhitelist(
+        address[] calldata accounts
+    ) external onlyOwner {
+        uint256 length = accounts.length;
+  
+        unchecked {
+            for (uint256 i; i < length; ++i) {
+                address account = accounts[i];
+                if (account == address(0)) revert ZeroAddress();
+                if (!whitelist[account]) {
+                    /// @dev Check to avoid duplicate events
+                    whitelist[account] = true;
+                    emit AddressWhitelisted(account);
+                }
+            }
+        }
     }
 
     /**

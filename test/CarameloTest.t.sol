@@ -3,34 +3,12 @@ pragma solidity ^0.8.20;
 
 import {Test} from 'forge-std/Test.sol';
 import {console} from 'forge-std/console.sol';
-import {IUniswapV2Router02, IUniswapV2Factory} from '../contracts/interfaces/UniswapV2Interfaces.sol';
+import {IUniswapV2Router02, IUniswapV2Factory, IUniswapV2Pair} from '../contracts/interfaces/UniswapV2Interfaces.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 
 import {Caramelo} from '../contracts/Caramelo.sol';
-import {
-    TokenomicsAlreadyInitialized,
-    ZeroAddress,
-    InvalidAmount,
-    AlreadyExcluded,
-    NotExcluded,
-    FeesExceeded,
-    ContractLocked,
-    UniswapAlreadyConfigured,
-    MaxTransactionExceeded,
-    InsufficientBalance,
-    InvalidTaxFee,
-    InvalidLiquidityFee,
-    InvalidBurnFee,
-    ApprovalFailed,
-    NumTokensSellToAddToLiquidityFailed,
-    UpgradesAreFrozen,
-    InvalidImplementation,
-    TokenBalanceZero,
-    TransferAmountExceedsMax,
-    OwnerNotExcludedFromFee,
-    TotalSupplyNotMatch
-} from '../contracts/utils/CarameloErrors.sol';
+import {TokenomicsAlreadyInitialized, ZeroAddress, InvalidAmount, AlreadyExcluded, NotExcluded, FeesExceeded, ContractLocked, SwapProtocolAlreadyConfigured, MaxTransactionExceeded, InsufficientBalance, InvalidTaxFee, InvalidLiquidityFee, InvalidBurnFee, ApprovalFailed, NumTokensSellToAddToLiquidityFailed, UpgradesAreFrozen, InvalidImplementation, TokenBalanceZero, TransferAmountExceedsMax, OwnerNotExcludedFromFee, TotalSupplyNotMatch, BurnExceedsTotalSupply} from '../contracts/utils/CarameloErrors.sol';
 
 contract CarameloTest is Test {
     Caramelo public carameloContract;
@@ -103,10 +81,6 @@ contract CarameloTest is Test {
         /// ---------------------------------------------------------------------------
         /// @dev labeling the wallets for better readability
         /// ---------------------------------------------------------------------------
-        vm.label(
-            0x770A14689463D15e7f2f28c581CC61FAf076E35c,
-            'Community Wallet'
-        );
         vm.label(0x5CffE6546affdCEEa5Fc02838Ad7B1aAec3Fc00A, 'ONG Wallet');
         vm.label(
             0x51B8470fE0DA250B5893Ee5B26574FEb32282F2b,
@@ -154,66 +128,111 @@ contract CarameloTest is Test {
         console.log('\n');
     }
 
-    // /// @dev test the tokenomics distribution
-    // function testTokenomicsDistribution() public view {
-    //     console.log('-------------------------------------------------');
-    //     console.log('--------- TEST TOKENOMICS DISTRIBUTION ----------');
-    //     console.log('-------------------------------------------------');
+    /// @dev test the tokenomics distribution
+    function testTokenomicsDistribution() external {
+        console.log('-------------------------------------------------');
+        console.log('--------- TEST TOKENOMICS DISTRIBUTION ----------');
+        console.log('-------------------------------------------------');
 
-    //     uint256 totalSupply = carameloContract.totalSupply();
+        uint256 totalSupply = carameloContract.totalSupply();
 
-    //     /// @dev calculate the amount of tokens for each wallet based on the percentage
-    //     uint256 communityAmount = (totalSupply * 50) / 100;
-    //     uint256 ongsAmount = (totalSupply * 15) / 100;
-    //     uint256 marketingAmount = (totalSupply * 10) / 100;
-    //     uint256 teamOneAmount = (totalSupply * 10) / 100;
-    //     uint256 teamSecondAmount = (totalSupply * 10) / 100;
-    //     uint256 developerAmount = (totalSupply * 5) / 100;
+        /// @dev calculate the amount of tokens for each wallet based on the percentage
+        uint256 communityAmount = (totalSupply * 50) / 100;
+        uint256 ongsAmount = (totalSupply * 15) / 100;
+        uint256 marketingAmount = (totalSupply * 10) / 100;
+        uint256 teamOneAmount = (totalSupply * 10) / 100;
+        uint256 teamSecondAmount = (totalSupply * 10) / 100;
+        uint256 developerAmount = (totalSupply * 5) / 100;
 
-    //     /// @dev check if the community wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0x770A14689463D15e7f2f28c581CC61FAf076E35c),
-    //         communityAmount,
-    //         'Community wallet balance mismatch'
-    //     );
+        vm.startPrank(owner);
+        /// @dev initialize tokenomics and transfer %
+        carameloContract.initializeTokenomics();
+        vm.stopPrank();
 
-    //     /// @dev check if the ONG wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0x5CffE6546affdCEEa5Fc02838Ad7B1aAec3Fc00A),
-    //         ongsAmount,
-    //         'ONG wallet balance mismatch'
-    //     );
+        /// @dev check if the community wallet balance is correct owner
+        assertEq(
+            carameloContract.balanceOf(owner),
+            communityAmount,
+            'Community wallet balance mismatch'
+        );
 
-    //     /// @dev check if the Marketing wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0x51B8470fE0DA250B5893Ee5B26574FEb32282F2b),
-    //         marketingAmount,
-    //         'Marketing wallet balance mismatch'
-    //     );
+        /// @dev check if the ONG wallet balance is correct
+        assertEq(
+            carameloContract.balanceOf(
+                0x5CffE6546affdCEEa5Fc02838Ad7B1aAec3Fc00A
+            ),
+            ongsAmount,
+            'ONG wallet balance mismatch'
+        );
 
-    //     /// @dev check if the Team One wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0x24f515276052D412f659aa28a6DD7f39a52F6aD7),
-    //         teamOneAmount,
-    //         'Team One wallet balance mismatch'
-    //     );
+        /// @dev check if the Marketing wallet balance is correct
+        assertEq(
+            carameloContract.balanceOf(
+                0x51B8470fE0DA250B5893Ee5B26574FEb32282F2b
+            ),
+            marketingAmount,
+            'Marketing wallet balance mismatch'
+        );
 
-    //     /// @dev check if the Team Second wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0xd3A2bd9cFB11067fa80Aca88bED48fa7CF0e2dcC),
-    //         teamSecondAmount,
-    //         'Team Second wallet balance mismatch'
-    //     );
+        /// @dev check if the Team One wallet balance is correct
+        assertEq(
+            carameloContract.balanceOf(
+                0x24f515276052D412f659aa28a6DD7f39a52F6aD7
+            ),
+            teamOneAmount,
+            'Team One wallet balance mismatch'
+        );
 
-    //     /// @dev check if the Developer wallet balance is correct
-    //     assertEq(
-    //         carameloContract.balanceOf(0x05b0cF5Efa12dc9bd83558b4787120a9297D9246),
-    //         developerAmount,
-    //         'Developer wallet balance mismatch'
-    //     );
+        /// @dev check if the Team Second wallet balance is correct
+        assertEq(
+            carameloContract.balanceOf(
+                0xd3A2bd9cFB11067fa80Aca88bED48fa7CF0e2dcC
+            ),
+            teamSecondAmount,
+            'Team Second wallet balance mismatch'
+        );
 
-    //     console.log('All tokenomics wallets have the correct balances.');
-    // }
+        /// @dev check if the Developer wallet balance is correct
+        assertEq(
+            carameloContract.balanceOf(
+                0x05b0cF5Efa12dc9bd83558b4787120a9297D9246
+            ),
+            developerAmount,
+            'Developer wallet balance mismatch'
+        );
+
+        console.log('All tokenomics wallets have the correct balances.');
+    }
+
+    function testTokenomicsDistributionAfterInitialization() external {
+        console.log(
+            '----------------------------------------------------------------------------'
+        );
+        console.log(
+            '-------------  Test Tokenomics Error after initialization--------------'
+        );
+        console.log(
+            '----------------------------------------------------------------------------'
+        );
+        console.log('\n');
+
+        vm.startPrank(owner);
+        carameloContract.initializeTokenomics();
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TokenomicsAlreadyInitialized.selector,
+                'Tokenomics already initialized!'
+            )
+        );
+        carameloContract.initializeTokenomics();
+        vm.stopPrank();
+
+        console.log('-------------------------------------------------');
+        console.log('\n');
+    }
 
     /// @dev test the transfer without fees
     function testTransferWithoutFees() public {
@@ -308,9 +327,11 @@ contract CarameloTest is Test {
         uint256 burnFee = (transferAmount * carameloContract.taxFee() * 30000) /
             (100000 * 100000); // 30% of taxFee
         /// @dev // 70% of taxFee
-        uint256 reflectFee = (transferAmount * carameloContract.taxFee() * 70000) /
-            (100000 * 100000); // 70% of taxFee
-        uint256 liquidityFee = (transferAmount * carameloContract.liquidityFee()) / 100000;
+        uint256 reflectFee = (transferAmount *
+            carameloContract.taxFee() *
+            70000) / (100000 * 100000); // 70% of taxFee
+        uint256 liquidityFee = (transferAmount *
+            carameloContract.liquidityFee()) / 100000;
         uint256 totalFee = burnFee + reflectFee + liquidityFee;
         uint256 expectedReceivedAmount = transferAmount - totalFee;
 
@@ -437,7 +458,10 @@ contract CarameloTest is Test {
             '    Excluded user balance:',
             carameloContract.balanceOf(excludedUser)
         );
-        console.log('    Normal user balance:', carameloContract.balanceOf(normalUser));
+        console.log(
+            '    Normal user balance:',
+            carameloContract.balanceOf(normalUser)
+        );
 
         /// @dev transfer from excluded to non-excluded (should not apply fees)
         console.log('\n--> Transferindo de usuario excluido para normal');
@@ -464,7 +488,9 @@ contract CarameloTest is Test {
         console.log('\n--> Transferindo de usuario normal para excluido');
         uint256 smallerAmount = 100 * 10 ** tokenParams.decimals;
 
-        uint256 excludedBalanceBefore = carameloContract.balanceOf(excludedUser);
+        uint256 excludedBalanceBefore = carameloContract.balanceOf(
+            excludedUser
+        );
 
         vm.startPrank(normalUser);
         carameloContract.transfer(excludedUser, smallerAmount);
@@ -474,7 +500,8 @@ contract CarameloTest is Test {
         uint256 taxFee = (smallerAmount * carameloContract.taxFee()) / 100000;
         uint256 burnFee = (taxFee * 30000) / 100000;
         uint256 reflectFee = taxFee - burnFee;
-        uint256 liquidityFee = (smallerAmount * carameloContract.liquidityFee()) / 100000;
+        uint256 liquidityFee = (smallerAmount *
+            carameloContract.liquidityFee()) / 100000;
         uint256 totalFee = burnFee + reflectFee + liquidityFee;
         uint256 expectedAmountBack = smallerAmount - totalFee;
 
@@ -538,14 +565,16 @@ contract CarameloTest is Test {
         vm.stopPrank();
 
         /// @dev Calculate applied fees
-        uint256 liquidityFee = (transferAmount2 * carameloContract.liquidityFee()) / 100; // 5% for liquidity
+        uint256 liquidityFee = (transferAmount2 *
+            carameloContract.liquidityFee()) / 100; // 5% for liquidity
         uint256 taxFee = (transferAmount2 * carameloContract.taxFee()) / 100; // 5% for taxFee
         uint256 burnFee = (taxFee * 30) / 100; // 30% of taxFee for burning
         uint256 reflectionFee = (taxFee * 70) / 100; // 70% of taxFee for reflection
         uint256 totalFee = liquidityFee + burnFee + reflectionFee; // Total fees
 
         /// @dev Calculate reflection received by userA
-        uint256 totalSupplyExcludingFees = carameloContract.totalSupply() - burnFee;
+        uint256 totalSupplyExcludingFees = carameloContract.totalSupply() -
+            burnFee;
         uint256 userAReflectionShare = (initialUserABalance *
             10 ** tokenParams.decimals) / totalSupplyExcludingFees;
         uint256 reflectionReceivedByUserA = (reflectionFee *
@@ -627,11 +656,17 @@ contract CarameloTest is Test {
 
         /// @dev enable again
         carameloContract.setSwapAndLiquifyEnabled(true);
-        assertTrue(carameloContract.swapAndLiquifyEnabled(), 'Deveria estar habilitado');
+        assertTrue(
+            carameloContract.swapAndLiquifyEnabled(),
+            'Deveria estar habilitado'
+        );
 
         vm.stopPrank();
 
-        console.log('Estado final do swap:', carameloContract.swapAndLiquifyEnabled());
+        console.log(
+            'Estado final do swap:',
+            carameloContract.swapAndLiquifyEnabled()
+        );
         console.log('\n');
     }
 
@@ -671,12 +706,40 @@ contract CarameloTest is Test {
 
         carameloContract.setFees(validTaxFee, validLiquidityFee);
 
-        assertEq(carameloContract.taxFee(), validTaxFee, 'Tax Fee nao foi atualizada');
+        assertEq(
+            carameloContract.taxFee(),
+            validTaxFee,
+            'Tax Fee nao foi atualizada'
+        );
         assertEq(
             carameloContract.liquidityFee(),
             validLiquidityFee,
             'Liquidity Fee nao foi atualizada'
         );
+
+        vm.stopPrank();
+        console.log('\n');
+    }
+
+    function testBurnExceedsTotalSupplyError() public {
+        console.log('-------------------------------------------------');
+        console.log('------------- TEST BURN EXCEEDS TOTAL SUPPLY --------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+
+        uint256 initialSupply = carameloContract.totalSupply();
+        console.log('Supply inicial:', initialSupply);
+
+        uint256 burnAmount = initialSupply + 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BurnExceedsTotalSupply.selector,
+                burnAmount,
+                initialSupply
+            )
+        );
+        vm.startPrank(owner);
+        carameloContract.burn(burnAmount);
 
         vm.stopPrank();
         console.log('\n');
@@ -700,8 +763,9 @@ contract CarameloTest is Test {
 
         /// @dev Agora, realizar a transferência que deve disparar a queima (userA -> userB)
         vm.startPrank(userA);
-        uint256 expectedBurn = (transferAmount * carameloContract.taxFee() * 30000) /
-            (100000 * 100000);
+        uint256 expectedBurn = (transferAmount *
+            carameloContract.taxFee() *
+            30000) / (100000 * 100000);
 
         console.log('Valor a transferir:', transferAmount);
         console.log('Queima esperada:', expectedBurn);
@@ -758,12 +822,19 @@ contract CarameloTest is Test {
             abi.encode(pairAddress)
         );
 
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
 
-        // Testar transferência que excede o maxTxAmount
+        carameloContract.transfer(
+            userA,
+            carameloContract.maxTxAmount() + 1000000000
+        );
+        vm.stopPrank();
+
+        vm.startPrank(userA);
+        /// @dev test transfer exceeding maxTxAmount
         uint256 amountExceedingMax = carameloContract.maxTxAmount() + 1;
         vm.expectRevert(TransferAmountExceedsMax.selector);
-        carameloContract.transfer(userA, amountExceedingMax);
+        carameloContract.transfer(userB, amountExceedingMax);
         vm.stopPrank();
     }
 
@@ -774,7 +845,8 @@ contract CarameloTest is Test {
         console.log('-------------------------------------------------');
         console.log('\n');
 
-        uint256 currentAmount = carameloContract.numTokensSellToAddToLiquidity();
+        uint256 currentAmount = carameloContract
+            .numTokensSellToAddToLiquidity();
         uint256 maxTx = carameloContract.maxTxAmount();
 
         /// @dev test with valid value (less than maxTxAmount)
@@ -813,7 +885,10 @@ contract CarameloTest is Test {
 
         vm.stopPrank();
 
-        console.log('Valor final:', carameloContract.numTokensSellToAddToLiquidity());
+        console.log(
+            'Valor final:',
+            carameloContract.numTokensSellToAddToLiquidity()
+        );
         console.log('\n');
     }
 
@@ -846,7 +921,10 @@ contract CarameloTest is Test {
 
         vm.stopPrank();
 
-        console.log('Router apos update:', address(carameloContract.uniswapV2Router()));
+        console.log(
+            'Router apos update:',
+            address(carameloContract.uniswapV2Router())
+        );
         console.log('\n');
     }
 
@@ -930,7 +1008,11 @@ contract CarameloTest is Test {
 
         carameloContract.setFees(newTaxFee, newLiquidityFee);
 
-        assertEq(carameloContract.taxFee(), newTaxFee, 'Tax Fee nao foi atualizada');
+        assertEq(
+            carameloContract.taxFee(),
+            newTaxFee,
+            'Tax Fee nao foi atualizada'
+        );
         assertEq(
             carameloContract.liquidityFee(),
             newLiquidityFee,
@@ -953,7 +1035,10 @@ contract CarameloTest is Test {
         /// @dev Testar usuário não autorizado
         vm.startPrank(userA);
         vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, userA)
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                userA
+            )
         );
         carameloContract.setFees(1, 1);
         vm.stopPrank();
@@ -978,7 +1063,7 @@ contract CarameloTest is Test {
         vm.startPrank(owner);
 
         /// @dev configure Uniswap (PancakeSwap)
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
 
         /// @dev Get maxTxAmount to ensure we don't exceed it
         uint256 maxTx = carameloContract.maxTxAmount();
@@ -1249,7 +1334,9 @@ contract CarameloTest is Test {
         );
 
         /// @dev check if the fees were applied correctly
-        uint256 pairBalance = carameloContract.balanceOf(carameloContract.uniswapV2Pair());
+        uint256 pairBalance = carameloContract.balanceOf(
+            carameloContract.uniswapV2Pair()
+        );
         console.log('\nBalance do par apos swap:', pairBalance);
 
         console.log('\n');
@@ -1300,7 +1387,10 @@ contract CarameloTest is Test {
         console.log('\nApos remover liquidez:');
         console.log('Tokens recebidos:', amountToken);
         console.log('ETH recebido:', amountETH);
-        console.log('Balance final de tokens:', carameloContract.balanceOf(owner));
+        console.log(
+            'Balance final de tokens:',
+            carameloContract.balanceOf(owner)
+        );
         console.log('Balance final de ETH:', address(owner).balance);
 
         /// @dev check if the pair is empty
@@ -1324,63 +1414,6 @@ contract CarameloTest is Test {
     }
     // ---------------------------------------------------------------------------
 
-    /// @dev auxiliar functionks
-
-    function _addLiquidity(
-        uint256 tokenAmount,
-        uint256 ethAmount
-    ) internal returns (uint256 lpTokens) {
-        vm.startPrank(owner);
-
-        /// @dev configure Uniswap if it's not already configured
-        if (address(carameloContract.uniswapV2Router()) == address(0)) {
-            carameloContract.configureUniswap(routerAddress);
-        }
-
-        /// @dev approve router to spend tokens
-        carameloContract.approve(routerAddress, tokenAmount);
-
-        /// @dev give ETH to owner
-        vm.deal(owner, ethAmount);
-
-        /// @dev add liquidity
-        (
-            uint256 amountToken,
-            uint256 amountETH,
-            uint256 liquidity
-        ) = IUniswapV2Router02(routerAddress).addLiquidityETH{value: ethAmount}(
-                address(carameloContract),
-                tokenAmount,
-                0, // slippage 100%
-                0, // slippage 100%
-                owner,
-                block.timestamp + 300
-            );
-
-        vm.stopPrank();
-
-        /// @dev security checks
-        address pair = carameloContract.uniswapV2Pair();
-        require(
-            carameloContract.balanceOf(pair) >= amountToken,
-            'Tokens nao foram transferidos para o par'
-        );
-        require(
-            IERC20(WBNB).balanceOf(pair) >= amountETH,
-            'WBNB nao foi transferido para o par'
-        );
-
-        /// @dev return amount of LP tokens received
-        lpTokens = IERC20(pair).balanceOf(owner);
-        require(lpTokens > 0, 'LP tokens nao foram mintados');
-        require(
-            lpTokens == liquidity,
-            'LP tokens nao correspondem ao retorno da funcao'
-        );
-
-        return lpTokens;
-    }
-
     /// @dev test reflection balance of complete
     function testReflectionBalanceOfComplete() public {
         vm.startPrank(owner);
@@ -1395,7 +1428,9 @@ contract CarameloTest is Test {
 
         /// @dev test after transfer with fees
         carameloContract.transfer(userA, 1000);
-        uint256 reflectionAfterTransfer = carameloContract.reflectionBalanceOf(userA);
+        uint256 reflectionAfterTransfer = carameloContract.reflectionBalanceOf(
+            userA
+        );
         assertGt(
             reflectionAfterTransfer,
             0,
@@ -1521,7 +1556,11 @@ contract CarameloTest is Test {
 
         /// @dev test with zero value
         carameloContract.approve(userA, 0);
-        assertEq(carameloContract.allowance(owner, userA), 0, 'Allowance should be zero');
+        assertEq(
+            carameloContract.allowance(owner, userA),
+            0,
+            'Allowance should be zero'
+        );
 
         /// @dev test with maximum value
         carameloContract.approve(userA, type(uint256).max);
@@ -1558,11 +1597,13 @@ contract CarameloTest is Test {
         /// @dev setup
         address factoryAddress = makeAddr('factory');
         _setupMocks(factoryAddress);
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
         carameloContract.setSwapAndLiquifyEnabled(true);
 
         /// @dev test with zero balance
-        uint256 balanceBefore = carameloContract.balanceOf(address(carameloContract));
+        uint256 balanceBefore = carameloContract.balanceOf(
+            address(carameloContract)
+        );
         require(balanceBefore == 0, 'Contract should have zero balance');
 
         /// @dev transfer should not trigger swap
@@ -1605,13 +1646,18 @@ contract CarameloTest is Test {
             abi.encode(pairAddress)
         );
 
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
+        carameloContract.transfer(
+            userA,
+            carameloContract.maxTxAmount() + 1000000000
+        );
+        vm.stopPrank();
 
+        vm.startPrank(userA);
         // Testar transferência que excede o maxTxAmount
         uint256 amountExceedingMax = carameloContract.maxTxAmount() + 1;
         vm.expectRevert(TransferAmountExceedsMax.selector);
-        carameloContract.transfer(userA, amountExceedingMax);
-
+        carameloContract.transfer(userB, amountExceedingMax);
         vm.stopPrank();
     }
 
@@ -1631,14 +1677,17 @@ contract CarameloTest is Test {
         carameloContract.transfer(userA, amount);
 
         /// @dev Verificar se o valor recebido é aproximadamente 1% do valor enviado
-        uint256 burnFee = (amount * carameloContract.taxFee() * 30000) / (100000 * 100000);
+        uint256 burnFee = (amount * carameloContract.taxFee() * 30000) /
+            (100000 * 100000);
         uint256 reflectFee = (amount * carameloContract.taxFee() * 70000) /
             (100000 * 100000);
-        uint256 liquidityFee = (amount * carameloContract.liquidityFee()) / 100000;
+        uint256 liquidityFee = (amount * carameloContract.liquidityFee()) /
+            100000;
         uint256 totalFee = burnFee + reflectFee + liquidityFee;
         uint256 expectedAmount = amount - totalFee;
 
-        uint256 actualBalance = carameloContract.balanceOf(userA) - initialBalance;
+        uint256 actualBalance = carameloContract.balanceOf(userA) -
+            initialBalance;
 
         /// @dev Margem de erro de 0.1%
         uint256 marginOfError = expectedAmount / 1000;
@@ -1668,7 +1717,7 @@ contract CarameloTest is Test {
         /// @dev Setup
         address factoryAddress = makeAddr('factory');
         _setupMocks(factoryAddress);
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
         carameloContract.setSwapAndLiquifyEnabled(true);
 
         /// @dev Set minimum value to trigger swap
@@ -1690,7 +1739,10 @@ contract CarameloTest is Test {
         carameloContract.transfer(address(carameloContract), minAmount);
 
         /// @dev Verify if swap was triggered
-        assertTrue(carameloContract.swapAndLiquifyEnabled(), 'Swap should remain enabled');
+        assertTrue(
+            carameloContract.swapAndLiquifyEnabled(),
+            'Swap should remain enabled'
+        );
 
         vm.stopPrank();
     }
@@ -1727,13 +1779,20 @@ contract CarameloTest is Test {
         /// @dev Testing transfer to zero address
         vm.startPrank(userA);
         vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0))
+            abi.encodeWithSelector(
+                Ownable.OwnableInvalidOwner.selector,
+                address(0)
+            )
         );
         carameloContract.transferOwnership(address(0));
 
         /// @dev Testing renounceOwnership
         carameloContract.renounceOwnership();
-        assertEq(carameloContract.owner(), address(0), 'Ownership not renounced');
+        assertEq(
+            carameloContract.owner(),
+            address(0),
+            'Ownership not renounced'
+        );
 
         vm.stopPrank();
     }
@@ -1750,7 +1809,10 @@ contract CarameloTest is Test {
 
         /// @dev Testing after enabling
         carameloContract.setSwapAndLiquifyEnabled(true);
-        assertTrue(carameloContract.isSwapAndLiquifyEnabled(), 'Should be enabled');
+        assertTrue(
+            carameloContract.isSwapAndLiquifyEnabled(),
+            'Should be enabled'
+        );
 
         vm.stopPrank();
     }
@@ -1782,7 +1844,7 @@ contract CarameloTest is Test {
             abi.encode(pairAddress)
         );
 
-        carameloContract.configureUniswap(routerAddress);
+        carameloContract.configureSwapProtocol(routerAddress);
         carameloContract.setSwapAndLiquifyEnabled(true);
 
         // Mock router calls
@@ -1809,14 +1871,180 @@ contract CarameloTest is Test {
             ),
             abi.encode(1000, 500, 100)
         );
-
-        // Testar transferência que excede o maxTxAmount
-        uint256 amountExceedingMax = carameloContract.maxTxAmount() + 1;
-        vm.expectRevert(TransferAmountExceedsMax.selector);
-        carameloContract.transfer(address(carameloContract), amountExceedingMax);
-
         vm.stopPrank();
     }
+
+    function testSwapExecute() external {
+        console.log('-------------------------------------------------');
+        console.log('------------- TEST SWAP PancakeSwap (BUY) -------------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+        /// ------------------------------------------------------------------------------------------------
+        /// @notice INITIAL SETUP TO TEST SWAP
+        /// ------------------------------------------------------------------------------------------------
+        uint256 initialCarameloBalance = carameloContract.balanceOf(userA);
+        uint256 initialUserABalance = userA.balance;
+        console.log('Inicial Caramelo balance of userA:', initialCarameloBalance);
+        console.log('Inicial BNB balance of userA:', initialUserABalance);
+        /// @dev inicializar tokenomics
+        vm.startPrank(owner);
+        carameloContract.initializeTokenomics();
+        vm.stopPrank();
+    
+        /// @dev validar o saldo do owner após tokenomics
+        uint256 fiftyPercentageSupplyOfTokensAmount = carameloContract.balanceOf(owner); // 50% do total supply
+        uint256 expectedTokenAmount = 500000000000000000; // Esperado
+        assertEq(fiftyPercentageSupplyOfTokensAmount, expectedTokenAmount, 'Token amount should be 500000000000000000');
+        console.log("Token amount community wallet apos initialize tokenomics:", fiftyPercentageSupplyOfTokensAmount);
+        /// ------------------------------------------------------------------------------------------------
+
+        /// ------------------------------------------------------------------------------------------------
+        /// @notice ADD LIQUIDITY
+        /// ------------------------------------------------------------------------------------------------
+        /// @dev add 50 ethers to pool 
+        vm.deal(owner, 50 ether);
+    
+        /// @dev adicionar liquidez ao pool
+        uint256 lpTokens = _addLiquidity(fiftyPercentageSupplyOfTokensAmount, 50 ether);
+        console.log("LP tokens recebidos:", lpTokens);
+    
+        /// @dev validar que o par foi criado
+        address pair = carameloContract.uniswapV2Pair();
+        require(pair != address(0), "Pair should be created");
+    
+        /// @dev obter reservas do par
+        (uint112 reserveToken, uint112 reserveETH, ) = IUniswapV2Pair(pair).getReserves();
+        console.log("Reserve token:", reserveToken); // 500000000000 tokens
+        console.log("Reserve ETH:", reserveETH); // 50000000000000000 em wei = 0.05 ethers
+        /// @custom:info maxTXAmount = 500_000_000 tokens
+        /// @custom:info maxETHForMaxTxAmount = 0.05 ethers
+        /// ------------------------------------------------------------------------------------------------
+
+        /// ------------------------------------------------------------------------------------------------
+        /// @notice BUY TOKENS
+        /// ------------------------------------------------------------------------------------------------
+        /// @dev calcular valor máximo de ETH permitido com base no maxTxAmount
+        uint256 maxTxAmount = carameloContract.maxTxAmount();
+        uint256 maxETHForMaxTxAmount = (maxTxAmount * reserveETH) / reserveToken;
+        console.log("ETH necessario para maxTxAmount:", maxETHForMaxTxAmount);
+    
+        /// @dev adicionar 0.1 ETH ao userA para simular a compra
+        vm.deal(userA, maxETHForMaxTxAmount);
+    
+        /// @dev realizar compra de tokens usando ETH
+        vm.startPrank(userA);
+    
+        /// @dev construir o caminho para o swap
+        address[] memory path = new address[](2);
+        path[0] = IUniswapV2Router02(routerAddress).WETH(); // Início do caminho: WETH
+        path[1] = address(carameloContract); // Fim do caminho: Token Caramelo
+    
+        /// @dev realizar swap
+        IUniswapV2Router02(routerAddress).swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: maxETHForMaxTxAmount
+        }(
+            0, // Aceitar qualquer quantidade mínima de tokens
+            path, // Caminho para o swap (WETH -> Caramelo)
+            userA, // Endereço que receberá os tokens
+            block.timestamp + 300 // Deadline para a transação
+        );
+    
+        vm.stopPrank();
+    
+        /// @dev verificar saldo final de Caramelo para userA
+        uint256 carameloBalance = carameloContract.balanceOf(userA);
+        console.log("Caramelo balance de userA:", carameloBalance);
+        /// ------------------------------------------------------------------------------------------------\
+        console.log('-------------------------------------------------');
+        console.log('------------- TEST SWAP PancakeSwap (SELL) -------------');
+        console.log('-------------------------------------------------');
+        console.log('\n');
+        /// ------------------------------------------------------------------------------------------------
+        /// @notice SELL TOKENS
+        /// ------------------------------------------------------------------------------------------------
+        /// @dev verificar se o saldo de tokens é maior que zero
+        require(carameloBalance > 0, "UserA deveria ter recebido tokens Caramelo");
+
+
+        uint256 amountToSell = carameloBalance * 90 / 100; // sell 90% of the tokens
+        
+        address[] memory pathSell = new address[](2);
+        pathSell[0] = address(carameloContract);
+        pathSell[1] = IUniswapV2Router02(routerAddress).WETH();
+        /// @dev try to sell all tokens
+        vm.startPrank(userA);
+        carameloContract.approve(routerAddress, amountToSell);
+        IUniswapV2Router02(routerAddress).swapExactTokensForETHSupportingFeeOnTransferTokens(
+            amountToSell,
+            0,
+            pathSell,
+            userA,
+            block.timestamp + 300
+        );
+        vm.stopPrank();
+        
+        uint256 BNBUserABalance = userA.balance;
+        console.log("BNB balance of userA:", BNBUserABalance);
+        console.log('\n');
+    }
+    
+
+    /// @dev auxiliar functionks
+    function _addLiquidity(
+        uint256 tokenAmount,
+        uint256 ethAmount
+    ) internal returns (uint256 lpTokens) {
+        vm.startPrank(owner);
+
+        /// @dev configure Uniswap if it's not already configured
+        if (address(carameloContract.uniswapV2Router()) == address(0)) {
+            carameloContract.configureSwapProtocol(routerAddress);
+        }
+
+        /// @dev approve router to spend tokens
+        carameloContract.approve(routerAddress, tokenAmount);
+
+        /// @dev give ETH to owner
+        vm.deal(owner, ethAmount);
+
+        /// @dev add liquidity
+        (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        ) = IUniswapV2Router02(routerAddress).addLiquidityETH{value: ethAmount}(
+                address(carameloContract),
+                tokenAmount,
+                0, // slippage 100%
+                0, // slippage 100%
+                owner,
+                block.timestamp + 300
+            );
+
+        vm.stopPrank();
+
+        /// @dev security checks
+        address pair = carameloContract.uniswapV2Pair();
+        require(
+            carameloContract.balanceOf(pair) >= amountToken,
+            'Tokens nao foram transferidos para o par'
+        );
+        require(
+            IERC20(WBNB).balanceOf(pair) >= amountETH,
+            'WBNB nao foi transferido para o par'
+        );
+
+        /// @dev return amount of LP tokens received
+        lpTokens = IERC20(pair).balanceOf(owner);
+        require(lpTokens > 0, 'LP tokens nao foram mintados');
+        require(
+            lpTokens == liquidity,
+            'LP tokens nao correspondem ao retorno da funcao'
+        );
+
+        return lpTokens;
+    }
+
     /// @dev helper function to setup mocks
     function _setupMocks(address factoryAddress) private {
         vm.mockCall(
