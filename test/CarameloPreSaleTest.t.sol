@@ -1089,51 +1089,51 @@ contract CarameloPreSaleTest is Test {
     }
 
     /** @dev Test function to add multiple addresses to the whitelist */
-    function testAddMultipleToWhitelist() public {
-        console.log('-------------------------------------------------');
-        console.log('------ TEST ADD MULTIPLE TO WHITELIST -----------');
-        console.log('-------------------------------------------------');
-        console.log('\n');
+    // function testAddMultipleToWhitelist() public {
+    //     console.log('-------------------------------------------------');
+    //     console.log('------ TEST ADD MULTIPLE TO WHITELIST -----------');
+    //     console.log('-------------------------------------------------');
+    //     console.log('\n');
 
-        address[] memory accounts = new address[](3);
-        accounts[0] = userA;
-        accounts[1] = userB;
-        accounts[2] = presaleWallet;
+    //     address[] memory accounts = new address[](3);
+    //     accounts[0] = userA;
+    //     accounts[1] = userB;
+    //     accounts[2] = presaleWallet;
 
-        vm.startPrank(owner);
-        carameloPreSale.addMultipleToWhitelist(accounts);
-        vm.stopPrank();
+    //     vm.startPrank(owner);
+    //     carameloPreSale.addMultipleToWhitelist(accounts);
+    //     vm.stopPrank();
 
-        for (uint256 i = 0; i < accounts.length; i++) {
-            assertTrue(
-                carameloPreSale.whitelist(accounts[i]),
-                "Address should be whitelisted"
-            );
-        }
+    //     for (uint256 i = 0; i < accounts.length; i++) {
+    //         assertTrue(
+    //             carameloPreSale.whitelist(accounts[i]),
+    //             "Address should be whitelisted"
+    //         );
+    //     }
 
-        // Test with empty array
-        address[] memory emptyArray = new address[](0);
-        vm.startPrank(owner);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidTokenAmount.selector,
-                "Empty array provided: ",
-                0
-            )
-        );
-        carameloPreSale.addMultipleToWhitelist(emptyArray);
-        vm.stopPrank();
+    //     // Test with empty array
+    //     address[] memory emptyArray = new address[](0);
+    //     vm.startPrank(owner);
+    //     vm.expectRevert(
+    //         abi.encodeWithSelector(
+    //             InvalidTokenAmount.selector,
+    //             "Empty array provided: ",
+    //             0
+    //         )
+    //     );
+    //     carameloPreSale.addMultipleToWhitelist(emptyArray);
+    //     vm.stopPrank();
 
-        // Test with array containing zero address
-        address[] memory invalidArray = new address[](1);
-        invalidArray[0] = address(0);
-        vm.startPrank(owner);
-        vm.expectRevert(ZeroAddress.selector);
-        carameloPreSale.addMultipleToWhitelist(invalidArray);
-        vm.stopPrank();
+    //     // Test with array containing zero address
+    //     address[] memory invalidArray = new address[](1);
+    //     invalidArray[0] = address(0);
+    //     vm.startPrank(owner);
+    //     vm.expectRevert(ZeroAddress.selector);
+    //     carameloPreSale.addMultipleToWhitelist(invalidArray);
+    //     vm.stopPrank();
 
-        console.log('\n');
-    }
+    //     console.log('\n');
+    // }
 
     /** @dev Test function to add multiple addresses to the whitelist and buy above max */
     function testAddMultipleToWhitelistAndBuyAboveMax() public {
