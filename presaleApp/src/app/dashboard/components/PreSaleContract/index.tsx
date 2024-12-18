@@ -13,6 +13,7 @@ export const PreSaleContract = () => {
   const [contract, setContract] = useState<any>(null);
   const [data, setData] = useState<any>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const setupContract = async () => {
@@ -36,11 +37,14 @@ export const PreSaleContract = () => {
       console.error(`O método ${fnName} não existe no contrato.`);
       return;
     }
+    setLoading(fnName);
     try {
       const result = await contract[fnName]();
       setData((prev: any) => ({ ...prev, [fnName]: result.toString() }));
     } catch (error) {
       console.error(`Erro ao buscar ${fnName}:`, error);
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -49,12 +53,15 @@ export const PreSaleContract = () => {
       console.error(`O método ${fnName} não existe no contrato.`);
       return;
     }
+    setLoading(fnName);
     try {
       const tx = await contract[fnName](...args);
       await tx.wait();
       alert(`${fnName} executado com sucesso!`);
     } catch (error) {
       console.error(`Erro ao executar ${fnName}:`, error);
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -62,40 +69,46 @@ export const PreSaleContract = () => {
     setInputs((prev) => ({ ...prev, [key]: value }));
   };
 
-const contractFunctions = [
-  { name: "initializePreSale", type: "nonpayable", args: [] },
-  { name: "tokensRemaining", type: "view", args: [] },
-  { name: "totalBNBReceived", type: "view", args: [] },
-  { name: "buyTokens", type: "payable", args: [] },
-  { name: "endPreSale", type: "nonpayable", args: [] },
-  { name: "withdrawFunds", type: "nonpayable", args: [] },
-  { name: "addToWhitelist", type: "nonpayable", args: ["account"] },
-  { name: "addMultipleToWhitelist", type: "nonpayable", args: ["accounts"] },
-  { name: "removeFromWhitelist", type: "nonpayable", args: ["account"] },
-  { name: "updateMaxTokensBuy", type: "nonpayable", args: ["newLimit"] },
-  { name: "updatePhase", type: "nonpayable", args: ["newPhase"] },
-  { name: "updatePhaseRate", type: "nonpayable", args: ["phase", "newRate"] },
-];
-
+  const contractFunctions = [
+    { name: "initializePreSale", type: "nonpayable", args: [] },
+    { name: "tokensRemaining", type: "view", args: [] },
+    { name: "totalBNBReceived", type: "view", args: [] },
+    { name: "buyTokens", type: "payable", args: [] },
+    { name: "endPreSale", type: "nonpayable", args: [] },
+    { name: "withdrawFunds", type: "nonpayable", args: [] },
+    { name: "addToWhitelist", type: "nonpayable", args: ["account"] },
+    { name: "addMultipleToWhitelist", type: "nonpayable", args: ["accounts"] },
+    { name: "removeFromWhitelist", type: "nonpayable", args: ["account"] },
+    { name: "updateMaxTokensBuy", type: "nonpayable", args: ["newLimit"] },
+    { name: "updatePhase", type: "nonpayable", args: ["newPhase"] },
+    { name: "updatePhaseRate", type: "nonpayable", args: ["phase", "newRate"] },
+  ];
 
   return (
     <Container className="w-full h-full">
       <div className="bg-gray-700 text-white p-8 rounded-2xl shadow-lg w-full h-full">
-        <h1 className="text-3xl font-extrabold text-carameloAccent mb-6 text-center">
-          PreSale Contract Dashboard
+        <h1 className="text-3xl font-extrabold text-carameloAccent mb-8 text-center">
+          🛠️ PreSale Contract Dashboard 🛠️
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {contractFunctions.map((fn) => (
             <div
               key={fn.name}
-              className="bg-gray-800 p-4 rounded-lg shadow-md flex flex-col gap-4"
+              className="bg-gray-800 p-6 rounded-lg shadow-md flex flex-col gap-4"
             >
-              <h2 className="text-lg font-bold">{fn.name}</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                {fn.name}
+              </h2>
               {fn.type === "view" ? (
                 <>
-                  <Button onClick={() => fetchData(fn.name)}>Fetch</Button>
-                  <div className="bg-gray-900 text-carameloAccent p-2 rounded-md">
-                    {data[fn.name] || "No Data"}
+                  <Button
+                    onClick={() => fetchData(fn.name)}
+                    disabled={loading === fn.name}
+                  >
+                    {loading === fn.name ? "Carregando..." : "Fetch"}
+                  </Button>
+                  <div className="bg-gray-900 text-carameloAccent p-3 rounded-md min-h-[50px] flex items-center">
+                    {data[fn.name] || "Sem dados disponíveis"}
                   </div>
                 </>
               ) : (
@@ -103,7 +116,7 @@ const contractFunctions = [
                   {fn.args.map((arg) => (
                     <Input
                       key={`${fn.name}-${arg}`}
-                      placeholder={arg}
+                      placeholder={`Digite ${arg}`}
                       value={inputs[`${fn.name}-${arg}`] || ""}
                       onChange={(e) =>
                         handleInputChange(`${fn.name}-${arg}`, e.target.value)
@@ -117,8 +130,9 @@ const contractFunctions = [
                         fn.args.map((arg) => inputs[`${fn.name}-${arg}`])
                       )
                     }
+                    disabled={loading === fn.name}
                   >
-                    Execute
+                    {loading === fn.name ? "Executando..." : "Execute"}
                   </Button>
                 </>
               )}
@@ -129,4 +143,3 @@ const contractFunctions = [
     </Container>
   );
 };
-
