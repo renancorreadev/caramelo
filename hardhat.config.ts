@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
 import '@openzeppelin/hardhat-upgrades';
@@ -12,7 +13,8 @@ const config: HardhatUserConfig = {
   networks: {
     localhost: {
       url: 'http://127.0.0.1:8545',
-      accounts: ["0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba"],
+      chainId: 56,
+      accounts: [process.env.PRIVATE_KEY as string],
     },
     mumbai: {
       url: process.env.POLYGON_RPC_URL,

@@ -7,9 +7,9 @@ import {
 
 
 const customLocalhost = defineChain({
-  id: 31337,
+  id: 56,
   name: 'Localhost',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
   rpcUrls: {
     default: { 
       http: ['http://127.0.0.1:8545'] 

@@ -11,15 +11,14 @@ async function main() {
   );
 
   // Parâmetros para o contrato Caramelo
-  const tokenName = "Caramelo";
-  const tokenSymbol = "CAR";
-  const totalSupply = ethers.parseUnits("1000000000000000", 6); // 1 trilhão com 6 decimais
+  const tokenName = "Caramelo Coin";
+  const tokenSymbol = "CARAMELO";
+  const totalSupply = ethers.parseUnits("420000000000000000", 6); // 420 Quadrilhao com 6 decimais
   const taxFee = 5;
   const liquidityFee = 5;
-  const maxTxAmount = ethers.parseUnits("50000000000000", 6); // 50 bilhões
-  const numTokensSellToAddToLiquidity = ethers.parseUnits("200000000000000", 6);
+  const maxTxAmount = ethers.parseUnits("126000000000000000", 6); //126.000.000.000.000.000 30% de total supply 
+  const numTokensSellToAddToLiquidity = ethers.parseUnits("3780000000000000", 6); // 3% de 126.000.000.000.000.000 | 3,78 trilhões de tokens)
 
-  // Deploy do contrato Caramelo
   const Caramelo = await ethers.getContractFactory("Caramelo");
   const caramelo = await Caramelo.deploy(
     tokenName,
@@ -36,11 +35,12 @@ async function main() {
   console.log("Caramelo deployed at:", caramelo.target);
 
   // Parâmetros para o contrato PreSale
-  const ratePhase1 = ethers.parseUnits("100000000", 6);
-  const ratePhase2 = ethers.parseUnits("60000000", 6);
-  const ratePhase3 = ethers.parseUnits("50000000", 6);
-  const tokensAvailable = ethers.parseUnits("84000000000", 6);
-  const maxTokensBuy = ethers.parseUnits("4200000000", 6);
+  const ratePhase1 = ethers.parseUnits("4200000000000", 6); // 4.200.000.000.000 tokens por 1 BNB | 50% 
+  const ratePhase2 = ethers.parseUnits("2520000000000", 6); // 2.520.000.000.000 tokens por 1 BNB | 30% 
+  const ratePhase3 = ethers.parseUnits("1680000000000", 6); // 1.680.000.000.000 tokens por 1 BNB | 20% 
+  
+  const tokensAvailable = ethers.parseUnits("84000000000000000", 6); // 84 quadrilhões 20% de total supply
+  const maxTokensBuy = ethers.parseUnits("16800000000000000", 6); // 16,8 quadrilhões 20% de tokensAvailable
 
   // Deploy do contrato CarameloPreSale
   const CarameloPreSale = await ethers.getContractFactory("CarameloPreSale");

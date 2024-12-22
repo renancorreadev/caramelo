@@ -73,7 +73,7 @@ const PresaleForm = () => {
       type: 'ERC20',
       options: {
         address: TOKEN_ADDRESS,
-        symbol: 'CAR',
+        symbol: 'CARAMELO',
         decimals: 6,
         image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
       },
