@@ -9,10 +9,22 @@ import 'solidity-docgen';
 env.config();
 
 const config: HardhatUserConfig = {
-  solidity: '0.8.22',
+  solidity: {
+    version: '0.8.26',
+    settings: {
+      optimizer: {
+        enabled: false, // Desative se não foi usado no Remix
+      },
+    },
+  },
   networks: {
     localhost: {
       url: 'http://127.0.0.1:8545',
+      chainId: 56,
+      accounts: [process.env.PRIVATE_KEY as string],
+    },
+    bsc: {
+      url: 'https://bsc-dataseed.binance.org/',
       chainId: 56,
       accounts: [process.env.PRIVATE_KEY as string],
     },

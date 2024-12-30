@@ -7,6 +7,24 @@ The Caramelo Token is a comprehensive ERC20-compliant token designed for advance
 
 ---
 
+### deploy
+
+total suppply: 420000000000000000000000
+decimals: 6
+taxFee: 5000 //5% 
+liquidityFee: 5000 //5% 
+maxTokensTxAmount: 126000000000000000 //30% 
+numTokensSellToAddToLiquidity: 3780000000000000000000 // 3% de maxTokensTXAmount
+
+PResale
+
+tokenAddress: 0x0000
+rate1: 4200000000000
+rate2: 2520000000000
+rate3: 1680000000000
+tokensAvailable: 84000000000000000
+maxTokenBuy: 16800000000000000
+
 ## Setup Workflow 
 
 <p align="center">

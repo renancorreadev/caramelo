@@ -4,25 +4,14 @@ pragma solidity ^0.8.22;
 import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
-import {
-    Phase,
-    InsufficientFunds,
-    InvalidPhase,
-    PreSaleNotActive,
-    NoTokensAvailable,
-    InvalidTokenAmount,
-    PreSaleAlreadyInitialized,
-    ZeroAddress,
-    WithdrawalFailed,
-    MaxTokensBuyExceeded,
-    InvalidPhaseRate
-} from './utils/CarameloPreSaleErrors.sol';
+import {Phase, InsufficientFunds, InvalidPhase, PreSaleNotActive, NoTokensAvailable, InvalidTokenAmount, PreSaleAlreadyInitialized, ZeroAddress, WithdrawalFailed, MaxTokensBuyExceeded, InvalidPhaseRate} from './utils/CarameloPreSaleErrors.sol';
 
 interface IERC20 {
     function transfer(
         address recipient,
         uint256 amount
     ) external returns (bool);
+
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -219,6 +208,24 @@ contract CarameloPreSale is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Withdraw unsold tokens after the presale has ended.
+     * @dev Transfers the remaining tokens to the owner's address.
+     */
+    function withdrawUnsoldTokens() external onlyOwner {
+        if (currentPhase != Phase.Ended) {
+            revert PreSaleNotActive();
+        }
+
+        uint256 remainingTokens = tokensAvailable;
+        if (remainingTokens > 0) {
+            tokensAvailable = 0; 
+            if (!token.transfer(owner(), remainingTokens)) {
+                revert WithdrawalFailed();
+            }
+        }
+    }
+
+    /**
      * @notice Get the remaining tokens available in the presale.
      * @return tokensRemaining The remaining tokens available.
      */
@@ -245,7 +252,7 @@ contract CarameloPreSale is Ownable, ReentrancyGuard {
         address[] calldata accounts
     ) external onlyOwner {
         uint256 length = accounts.length;
-  
+
         unchecked {
             for (uint256 i; i < length; ++i) {
                 address account = accounts[i];

@@ -36,7 +36,7 @@ contract CarameloSwapsTest is Test {
         WETH = makeAddr('WETH');
 
         vm.startPrank(owner);
-        carameloContract = new Caramelo('Caramelo', 'TKN', 1_000_000, 6, 5, 5, 500_000, 500_000);
+        carameloContract = new Caramelo('Caramelo', 'TKN', 1_000_000, 9, 5, 5, 500_000, 500_000);
 
         vm.stopPrank();
     }
@@ -46,7 +46,7 @@ contract CarameloSwapsTest is Test {
         /*
          * @dev Check if the decimals are correct
          */
-        assertEq(carameloContract.decimals(), 6, 'Decimals should be 6');
+        assertEq(carameloContract.decimals(), 9, 'Decimals should be 6');
     }
 
     /** @dev Test swap and liquify enabled */

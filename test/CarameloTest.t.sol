@@ -50,7 +50,7 @@ contract CarameloTest is Test {
             name: 'Caramelo',
             symbol: 'TKN',
             initialSupply: 1_000_000_000_000, // 1 bilhão of tokens
-            decimals: 6, // 6 decimals
+            decimals: 9, // 6 decimals
             taxFee: 5000, // 5% (5000/100000)
             liquidityFee: 5000, // 5% (5000/100000)
             maxTokensTXAmount: 500_000_000, // 500,000,000 tokens
