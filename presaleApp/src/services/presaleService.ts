@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { CarameloPreSale__factory } from "@/utils/typechain"; // Importa a factory gerada automaticamente pelo Typechain
+import { CarameloPreSale__factory } from "../utils/typechain"; // Importa a factory gerada automaticamente pelo Typechain
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "";
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || "";
