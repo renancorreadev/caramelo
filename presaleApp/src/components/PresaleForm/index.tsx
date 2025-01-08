@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useWalletClient, useAccount } from "wagmi";
-import { CarameloPreSale__factory } from "@/utils/typechain";
+import { CarameloPreSale__factory } from "../../utils/typechain";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || "";
 const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || ""; // Endereço do token

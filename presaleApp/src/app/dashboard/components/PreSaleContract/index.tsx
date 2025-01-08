@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
-import { CarameloPreSale__factory } from "@/utils/typechain";
+import { CarameloPreSale__factory } from "../../../../utils/typechain";
 import { Container } from "@/components/Container";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
