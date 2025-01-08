@@ -1,0 +1,687 @@
+{
+  "version": "3.4",
+  "log": [
+    {
+      "@openzeppelin/contracts/access/Ownable.sol:Ownable": {
+        "src": "@openzeppelin/contracts/access/Ownable.sol:20",
+        "inherit": [
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "owner()",
+          "renounceOwnership()",
+          "transferOwnership(address)"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "Ownable",
+            "src": "@openzeppelin/contracts/access/Ownable.sol:38"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "@openzeppelin/contracts/utils/Context.sol:Context": {
+        "src": "@openzeppelin/contracts/utils/Context.sol:16",
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "@openzeppelin/contracts/utils/ReentrancyGuard.sol:ReentrancyGuard": {
+        "src": "@openzeppelin/contracts/utils/ReentrancyGuard.sol:22",
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "ReentrancyGuard",
+            "src": "@openzeppelin/contracts/utils/ReentrancyGuard.sol:44"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/utils/ReentrancyGuard.sol:37"
+            }
+          ],
+          "types": {
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/Caramelo.sol:Caramelo": {
+        "src": "contracts/Caramelo.sol:35",
+        "version": {
+          "withMetadata": "9e2ff2a276f21fbd380fffba509dcc775a9fb7cad99c0cd1d89f6dd1ca505793",
+          "withoutMetadata": "77107f7601293f60b7abe90d28f205b7a8c8a141799847e8fbffdb4453f509db",
+          "linkedWithoutMetadata": "77107f7601293f60b7abe90d28f205b7a8c8a141799847e8fbffdb4453f509db"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/utils/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "(string,string,uint256,uint8,uint256,uint256,uint256,uint256)",
+          "name()",
+          "symbol()",
+          "reflectionBalanceOf(address)",
+          "decimals()",
+          "allowance(address,address)",
+          "totalSupply()",
+          "balanceOf(address)",
+          "initializeTokenomics()",
+          "transfer(address,uint256)",
+          "transferFrom(address,address,uint256)",
+          "setMaxTxAmount(uint256)",
+          "updateUniswapV2Router(address)",
+          "setNumTokensSellToAddToLiquidity(uint256)",
+          "isAccountExcludedFromFree(address)",
+          "includeInFee(address)",
+          "excludeFromFee(address)",
+          "burn(uint256)",
+          "setFees(uint256,uint256)",
+          "approve(address,uint256)",
+          "configureSwapProtocol(address)",
+          "isSwapAndLiquifyEnabled()",
+          "setSwapAndLiquifyEnabled(bool)",
+          "withdrawBNB(uint256)",
+          "()"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "Caramelo",
+            "src": "contracts/Caramelo.sol:115"
+          },
+          {
+            "kind": "state-variable-assignment",
+            "name": "initTokenomics",
+            "src": "contracts/Caramelo.sol:46"
+          },
+          {
+            "kind": "state-variable-assignment",
+            "name": "swapAndLiquifyEnabled",
+            "src": "contracts/Caramelo.sol:59"
+          },
+          {
+            "kind": "state-variable-assignment",
+            "name": "inSwapAndLiquify",
+            "src": "contracts/Caramelo.sol:60"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/utils/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "_tTotal",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:39"
+            },
+            {
+              "label": "_rTotal",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:40"
+            },
+            {
+              "label": "_tFeeTotal",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:41"
+            },
+            {
+              "label": "_name",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_string_storage",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:43"
+            },
+            {
+              "label": "_symbol",
+              "offset": 0,
+              "slot": "6",
+              "type": "t_string_storage",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:44"
+            },
+            {
+              "label": "_decimals",
+              "offset": 0,
+              "slot": "7",
+              "type": "t_uint8",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:45"
+            },
+            {
+              "label": "initTokenomics",
+              "offset": 1,
+              "slot": "7",
+              "type": "t_bool",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:46"
+            },
+            {
+              "label": "_rOwned",
+              "offset": 0,
+              "slot": "8",
+              "type": "t_mapping(t_address,t_uint256)",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:48"
+            },
+            {
+              "label": "_allowances",
+              "offset": 0,
+              "slot": "9",
+              "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:49"
+            },
+            {
+              "label": "_isExcludedFromFee",
+              "offset": 0,
+              "slot": "10",
+              "type": "t_mapping(t_address,t_bool)",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:51"
+            },
+            {
+              "label": "taxFee",
+              "offset": 0,
+              "slot": "11",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:53"
+            },
+            {
+              "label": "liquidityFee",
+              "offset": 0,
+              "slot": "12",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:54"
+            },
+            {
+              "label": "maxTxAmount",
+              "offset": 0,
+              "slot": "13",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:56"
+            },
+            {
+              "label": "numTokensSellToAddToLiquidity",
+              "offset": 0,
+              "slot": "14",
+              "type": "t_uint256",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:57"
+            },
+            {
+              "label": "swapAndLiquifyEnabled",
+              "offset": 0,
+              "slot": "15",
+              "type": "t_bool",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:59"
+            },
+            {
+              "label": "inSwapAndLiquify",
+              "offset": 1,
+              "slot": "15",
+              "type": "t_bool",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:60"
+            },
+            {
+              "label": "uniswapV2Router",
+              "offset": 2,
+              "slot": "15",
+              "type": "t_contract(IUniswapV2Router02)2893",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:62"
+            },
+            {
+              "label": "uniswapV2Pair",
+              "offset": 0,
+              "slot": "16",
+              "type": "t_address",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:63"
+            },
+            {
+              "label": "tokenomics",
+              "offset": 0,
+              "slot": "17",
+              "type": "t_array(t_struct(TokenomicsConfig)436_storage)6_storage",
+              "contract": "Caramelo",
+              "src": "contracts/Caramelo.sol:113"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_struct(TokenomicsConfig)436_storage)6_storage": {
+              "label": "struct Caramelo.TokenomicsConfig[6]",
+              "numberOfBytes": "384"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_contract(IUniswapV2Router02)2893": {
+              "label": "contract IUniswapV2Router02",
+              "numberOfBytes": "20"
+            },
+            "t_mapping(t_address,t_bool)": {
+              "label": "mapping(address => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+              "label": "mapping(address => mapping(address => uint256))",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_address,t_uint256)": {
+              "label": "mapping(address => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_string_storage": {
+              "label": "string",
+              "numberOfBytes": "32"
+            },
+            "t_struct(TokenomicsConfig)436_storage": {
+              "label": "struct Caramelo.TokenomicsConfig",
+              "members": [
+                {
+                  "label": "wallet",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "percentage",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                }
+              ],
+              "numberOfBytes": "64"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            },
+            "t_uint8": {
+              "label": "uint8",
+              "numberOfBytes": "1"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/CarameloPreSale.sol:CarameloPreSale": {
+        "src": "contracts/CarameloPreSale.sol:18",
+        "version": {
+          "withMetadata": "46ec0da5d4f8b3c30c79fe6db063b4d9e24e9496a7d05909dbaec13d94db6363",
+          "withoutMetadata": "661915c20fc9f7e7bab492eb232f33abfe8d1c583458f436772bccaabea2533b",
+          "linkedWithoutMetadata": "661915c20fc9f7e7bab492eb232f33abfe8d1c583458f436772bccaabea2533b"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/utils/ReentrancyGuard.sol:ReentrancyGuard",
+          "@openzeppelin/contracts/access/Ownable.sol:Ownable",
+          "@openzeppelin/contracts/utils/Context.sol:Context"
+        ],
+        "libraries": [],
+        "methods": [
+          "(address,uint256,uint256,uint256,uint256,uint256)",
+          "initializePreSale()",
+          "buyTokens()",
+          "updatePhase(uint8)",
+          "updatePhaseRate(uint8,uint256)",
+          "endPreSale()",
+          "withdrawFunds()",
+          "withdrawUnsoldTokens()",
+          "tokensRemaining()",
+          "addToWhitelist(address)",
+          "addMultipleToWhitelist(address[])",
+          "removeFromWhitelist(address)",
+          "updateMaxTokensBuy(uint256)",
+          "()"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "CarameloPreSale",
+            "src": "contracts/CarameloPreSale.sol:41"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "_owner",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_address",
+              "contract": "Ownable",
+              "src": "@openzeppelin/contracts/access/Ownable.sol:21"
+            },
+            {
+              "label": "_status",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256",
+              "contract": "ReentrancyGuard",
+              "src": "@openzeppelin/contracts/utils/ReentrancyGuard.sol:37"
+            },
+            {
+              "label": "currentPhase",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_enum(Phase)3057",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:19"
+            },
+            {
+              "label": "token",
+              "offset": 1,
+              "slot": "2",
+              "type": "t_contract(IERC20)1886",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:20"
+            },
+            {
+              "label": "tokensAvailable",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_uint256",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:21"
+            },
+            {
+              "label": "tokensSold",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_uint256",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:22"
+            },
+            {
+              "label": "phaseRates",
+              "offset": 0,
+              "slot": "5",
+              "type": "t_mapping(t_enum(Phase)3057,t_uint256)",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:23"
+            },
+            {
+              "label": "totalBNBReceived",
+              "offset": 0,
+              "slot": "6",
+              "type": "t_uint256",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:24"
+            },
+            {
+              "label": "preSaleInitialized",
+              "offset": 0,
+              "slot": "7",
+              "type": "t_bool",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:25"
+            },
+            {
+              "label": "whitelist",
+              "offset": 0,
+              "slot": "8",
+              "type": "t_mapping(t_address,t_bool)",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:28"
+            },
+            {
+              "label": "tokensPurchasedByAddress",
+              "offset": 0,
+              "slot": "9",
+              "type": "t_mapping(t_address,t_uint256)",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:29"
+            },
+            {
+              "label": "maxTokensBuy",
+              "offset": 0,
+              "slot": "10",
+              "type": "t_uint256",
+              "contract": "CarameloPreSale",
+              "src": "contracts/CarameloPreSale.sol:30"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_contract(IERC20)1886": {
+              "label": "contract IERC20",
+              "numberOfBytes": "20"
+            },
+            "t_enum(Phase)3057": {
+              "label": "enum Phase",
+              "members": [
+                "Phase1",
+                "Phase2",
+                "Phase3",
+                "Ended"
+              ],
+              "numberOfBytes": "1"
+            },
+            "t_mapping(t_address,t_bool)": {
+              "label": "mapping(address => bool)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_address,t_uint256)": {
+              "label": "mapping(address => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_enum(Phase)3057,t_uint256)": {
+              "label": "mapping(enum Phase => uint256)",
+              "numberOfBytes": "32"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/CarameloPreSale.sol:IERC20": {
+        "src": "contracts/CarameloPreSale.sol:9",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "transfer(address,uint256)",
+          "balanceOf(address)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/interfaces/UniswapV2Interfaces.sol:IUniswapV2Factory": {
+        "src": "contracts/interfaces/UniswapV2Interfaces.sol:195",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "createPair(address,address)",
+          "getPair(address,address)",
+          "allPairs(uint256)",
+          "allPairsLength()",
+          "feeTo()",
+          "feeToSetter()",
+          "setFeeTo(address)",
+          "setFeeToSetter(address)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/interfaces/UniswapV2Interfaces.sol:IUniswapV2Pair": {
+        "src": "contracts/interfaces/UniswapV2Interfaces.sol:218",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "getReserves()",
+          "token0()",
+          "token1()"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      },
+      "contracts/interfaces/UniswapV2Interfaces.sol:IUniswapV2Router02": {
+        "src": "contracts/interfaces/UniswapV2Interfaces.sol:4",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "WETH()",
+          "factory()",
+          "swapExactTokensForETHSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)",
+          "swapExactETHForTokensSupportingFeeOnTransferTokens(uint256,address[],address,uint256)",
+          "swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)",
+          "swapExactTokensForTokens(uint256,uint256,address[],address,uint256)",
+          "swapTokensForExactTokens(uint256,uint256,address[],address,uint256)",
+          "swapTokensForExactETH(uint256,uint256,address[],address,uint256)",
+          "swapExactETHForTokens(uint256,address[],address,uint256)",
+          "swapETHForExactTokens(uint256,address[],address,uint256)",
+          "addLiquidity(address,address,uint256,uint256,uint256,uint256,address,uint256)",
+          "addLiquidityETH(address,uint256,uint256,uint256,address,uint256)",
+          "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
+          "removeLiquidityETH(address,uint256,uint256,uint256,address,uint256)",
+          "removeLiquidityWithPermit(address,address,uint256,uint256,uint256,address,uint256,bool,uint8,bytes32,bytes32)",
+          "removeLiquidityETHWithPermit(address,uint256,uint256,uint256,address,uint256,bool,uint8,bytes32,bytes32)",
+          "removeLiquidityETHSupportingFeeOnTransferTokens(address,uint256,uint256,uint256,address,uint256)",
+          "removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(address,uint256,uint256,uint256,address,uint256,bool,uint8,bytes32,bytes32)",
+          "quote(uint256,uint256,uint256)",
+          "getAmountOut(uint256,uint256,uint256)",
+          "getAmountIn(uint256,uint256,uint256)",
+          "getAmountsOut(uint256,address[])",
+          "getAmountsIn(uint256,address[])"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.26"
+      }
+    }
+  ]
+}
