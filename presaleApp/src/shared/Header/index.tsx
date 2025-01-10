@@ -3,16 +3,6 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// import { Magic } from 'magic-sdk';
-
-// const customNodeOptions = {
-//   rpcUrl: 'https://bsc-mainnet.infura.io/v3/60786ed4ffd74c75b4b0bb369cde55f7', // Custom RPC URL
-//   chainId: 56, // Custom chain id
-// }
-// const magic = new Magic("pk_live_2359E91C3FFA732A", {
-//   network: customNodeOptions
-// });
-
 
 export const Header = () => {
   return (
