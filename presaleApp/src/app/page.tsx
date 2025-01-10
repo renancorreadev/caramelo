@@ -29,14 +29,14 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900 to-gray-900"></div>
         </div>
 
-        <div className="sm:mx-6 xl:mx-12">
+        <div className="xs:mx-6 xl:mx-12">
           <CarameloWhitePaper />
         </div>
             
-        <div className='sm:mx-6 py-8 xl:mx-12'>
+        <div className='xs:mx-6 py-8 xl:mx-12'>
         <Roadmap />
         </div>
-        <div className="sm:mx-6 mb-8">
+        <div className="xs:mx-6 mb-8">
           <ConnectWalletMessage />
         </div>
       </div>

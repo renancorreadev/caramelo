@@ -13,7 +13,7 @@ export default {
         foreground: "var(--foreground)",
       },
       screens: {
-        xs: { max: '400px' }, // Dispositivos até 400px
+        xs: { max: '640px' }, // Dispositivos até 400px
         sm: '640px',          // Tailwind padrão: até 640px
         md: '768px',          // Tailwind padrão: até 768px
         lg: '1024px',         // Tailwind padrão: até 1024px
