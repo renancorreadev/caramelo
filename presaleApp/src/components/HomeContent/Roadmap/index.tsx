@@ -32,7 +32,7 @@ export const Roadmap = () => {
     ];
   
     return (
-      <div className="bg-gray-700 text-white p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
+      <div className="bg-gray-700 text-white p-8 rounded-2xl shadow-lg mx-auto">
         <h2 className="text-3xl font-extrabold text-carameloAccent mb-6 text-center">
           📈 Roadmap 📈
         </h2>

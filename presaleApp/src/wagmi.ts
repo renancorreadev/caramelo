@@ -1,32 +1,34 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { defineChain } from 'viem';
+import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
-  opBNB,
-  opBNBTestnet,
-} from 'wagmi/chains';
+  rainbowWallet,
+  walletConnectWallet,
+  binanceWallet,
+  coinbaseWallet
+} from '@rainbow-me/rainbowkit/wallets';
+import { bsc } from 'viem/chains';
+
+import { createConfig, http } from 'wagmi';
 
 
-const customLocalhost = defineChain({
-  id: 56,
-  name: 'Localhost',
-  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-  rpcUrls: {
-    default: { 
-      http: ['http://127.0.0.1:8545'] 
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: 'Recommended',
+      wallets: [rainbowWallet, walletConnectWallet, binanceWallet, coinbaseWallet],
     },
-    public: { 
-      http: ['http://127.0.0.1:8545'] 
-    }
-  }
-});
-
-export const config = getDefaultConfig({
-  appName: 'RainbowKit demo',
-  projectId: 'YOUR_PROJECT_ID',
-  chains: [
-    opBNB,
-    opBNBTestnet,
-    ...([customLocalhost]),
   ],
+  {
+    appName: 'Caramelo',
+    projectId: '1874f7d69584a7d65db6382fd0760fcf',
+  }
+);
+
+
+export const config = createConfig({
+  connectors,
+  chains: [bsc],
+  transports: {
+    [bsc.id]: http(),
+  },
   ssr: true,
 });

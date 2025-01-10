@@ -74,7 +74,7 @@ const PresaleForm = () => {
       options: {
         address: TOKEN_ADDRESS,
         symbol: 'CARAMELO',
-        decimals: 6,
+        decimals: 9,
         image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
       },
     };

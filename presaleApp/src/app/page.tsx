@@ -1,10 +1,7 @@
 'use client';
 
 import { Container } from '@/components/Container';
-import {
-  ConnectWalletMessage,
-  Roadmap,
-} from '@/components/HomeContent';
+import { ConnectWalletMessage, Roadmap } from '@/components/HomeContent';
 import CarameloWhitePaper from '@/components/HomeContent/CarameloWhitePaper';
 import PresaleForm from '@/components/PresaleForm';
 import { useAccount } from 'wagmi';
@@ -18,10 +15,30 @@ export default function Home() {
     </Container>
   ) : (
     <Container>
-      <div className="bg-gray-900 min-h-screen py-12 px-6">
-        <CarameloWhitePaper />
+      <div className="bg-gray-900 min-h-screen w-full">
+        <div className="relative w-full h-40 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-repeat opacity-40 pointer-events-none w-full h-full"
+            style={{
+              backgroundImage: "url('/dog.png')",
+              backgroundSize: '80px 80px',
+              backgroundAttachment: 'fixed',
+            }}
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900 to-gray-900"></div>
+        </div>
+
+        <div className="sm:mx-6 xl:mx-12">
+          <CarameloWhitePaper />
+        </div>
+            
+        <div className='sm:mx-6 py-8 xl:mx-12'>
         <Roadmap />
-        <ConnectWalletMessage />
+        </div>
+        <div className="sm:mx-6 mb-8">
+          <ConnectWalletMessage />
+        </div>
       </div>
     </Container>
   );
