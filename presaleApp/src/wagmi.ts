@@ -12,7 +12,7 @@ import {
 } from '@rainbow-me/rainbowkit/wallets';
 import { bsc } from 'viem/chains';
 
-import { createConfig, http } from 'wagmi';
+import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 
 
 function walletConnect() {
@@ -49,6 +49,9 @@ const connectors = connectorsForWallets(
 export const config = createConfig({
   connectors,
   chains: [bsc],
+  storage: createStorage({
+    storage: cookieStorage
+  }),
   transports: {
     [bsc.id]: http(),
   },
