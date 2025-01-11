@@ -1,0 +1,160 @@
+/* Normalize e configuração inicial */
+body {
+    margin: 0;
+    font-family: 'Comic Neue', cursive, sans-serif;
+    line-height: 1.5;
+    color: #333;
+    background: #fff;
+  }
+  
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  a:hover {
+    color: #ffc107;
+    text-shadow: 0 0 1px #d1d1d1;
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  /* Estilização do Header */
+  .header {
+    width: 100%;
+    background-color: #0b0b0b;
+    color: #fff;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+  }
+  
+  .navbar-brand img {
+    height: 50px;
+  }
+  
+  /* Menu */
+  .menu {
+    display: flex;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .menu__inner {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+  }
+  
+  .menu__inner a {
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 10px 15px;
+  }
+  
+  .menu__inner a:hover {
+    color: #ffc107;
+  }
+  
+  .menu-trigger {
+    display: none;
+    cursor: pointer;
+  }
+  
+  .menu-trigger svg path {
+    fill: #1040e2;
+  }
+  
+  @media (max-width: 960px) {
+    .menu {
+      width: 100% !important;
+    }
+  
+    .menu__inner a {
+      font-size: 1.4rem !important;
+    }
+  
+    .dogecoinswag {
+      display: inherit;
+    }
+  
+    .dogecoinswagicon {
+      display: none;
+    }
+  }
+  
+  /* Ícones */
+  .fa-shirt {
+    color: #ccc !important;
+  }
+  
+  .fa-shirt:hover {
+    color: #ffc107 !important;
+  }
+  
+  /* Tooltip */
+  .tooltip {
+    position: relative;
+  }
+  
+  .tooltip .tooltip-content {
+    display: none;
+    position: absolute;
+    background: #0f0f0f;
+    color: #fff;
+    padding: 10px;
+  }
+  
+  .tooltip:hover .tooltip-content {
+    display: block;
+    opacity: 1;
+  }
+  
+  /* Botões */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+  }
+  
+  .theme-toggler {
+    fill: currentColor;
+  }
+  
+  .not-selectable {
+    user-select: none;
+  }
+  
+  .comic-neue {
+    font-family: 'Comic Neue', cursive;
+  }
+  
+  .comic-neue-bold {
+    font-family: 'Comic Neue', cursive;
+    font-weight: bold;
+    font-size: larger;
+  }
+  

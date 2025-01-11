@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Header, Footer } from "../shared";
+import { Comic_Neue } from 'next/font/google';
 import "./globals.css";
+import "../css/all.min.css";
+import "../css/aos.css";
+import "../css/bootstrap.min.css";
+import "../css/flag-icon.min.css";
+import "../css/main.css";
+
 import '@rainbow-me/rainbowkit/styles.css';
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const comicNeue = Comic_Neue({
+  subsets: ['latin'],
+  weight: ['400', '700'], 
+  display: 'swap',
+  variable: '--font-comic-neue',
 });
 
 export const metadata: Metadata = {
@@ -26,14 +29,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="pt-BR" className={comicNeue.variable}>
+      <body className={`antialiased`}>
         <Providers>
-          <Header />
-          {children}
-          <Footer />
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <Header />
+            <main style={{ flexGrow: 1 }}>
+              {children}
+            </main>
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>

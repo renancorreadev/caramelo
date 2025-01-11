@@ -38,7 +38,7 @@ const AdminPage = () => {
   }
 
   return (
-    <Container className="p-14">
+    <Container className="p-14 max-w-max">
       <div className="bg-gray-700 text-white p-14 rounded-2xl shadow-lg w-full">
         <h1 className="text-3xl font-extrabold text-carameloAccent mb-6 text-center">
           🛠️ Administração Caramelo 🛠️
