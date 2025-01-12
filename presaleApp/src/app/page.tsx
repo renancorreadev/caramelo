@@ -125,7 +125,7 @@ export default function Home() {
               <div className="col-md-6">
                 <div className="kabosu-content">
                   <h2
-                    className="title display-5 text-start text-dark comic-neue"
+                    className="title display-5 text-start text-dark xs:text-slate-300 comic-neue"
                     id="sobre"
                   >
                     O que é a Caramelo Coin?
