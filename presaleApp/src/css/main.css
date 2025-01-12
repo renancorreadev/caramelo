@@ -2342,7 +2342,7 @@ h3 {
   .parent {
     position: relative;
     top: 0;
-    left: 5vw;
+    left: 10px;
   }
   .kabosu-content {
     width: 100vw !important;
@@ -3667,14 +3667,25 @@ button[data-testid="rk-connect-button"] {
 }
 
 
-@media screen and (max-width: 676px) {
+@media screen and (max-width: 720px) {
   #footer-pg {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
   }
+
+  #o-que-e-a-caramelo-coin > div > div:nth-child(1) > div.col-md-6.parent {
+    left: 2rem;
+  }
+
+  body {
+    overflow-x: hidden; /* Remove scroll horizontal */
+  }
+  
 }
+  
+
 
 /*# sourceMappingURL=main.css.map */
 
