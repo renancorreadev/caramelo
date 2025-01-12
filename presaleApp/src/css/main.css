@@ -2780,7 +2780,6 @@ h3 {
 .community {
   position: relative;
   display: block;
-  padding: 7.5vh 0 0 0;
 }
 [data-theme='dark'] .community {
   color: #ffffff;
@@ -2813,7 +2812,6 @@ h3 {
     width: 100vw;
     position: relative;
     display: block;
-    padding-top: 6.5em;
     left: 3rem;
   }
   [data-theme='dark'] .community {
@@ -3668,6 +3666,11 @@ button[data-testid="rk-connect-button"] {
 
 
 @media screen and (max-width: 720px) {
+
+  #presaleform {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
   #footer-pg {
     display: flex;
     justify-content: center;
@@ -3683,6 +3686,44 @@ button[data-testid="rk-connect-button"] {
     overflow-x: hidden; /* Remove scroll horizontal */
   }
   
+  .footer-column1 .logo {
+    justify-content: center;
+  }
+
+  #footer-pg {
+    padding: 0 1rem;
+  }
+
+  footer {
+    padding: 0 .5rem !important;
+  }
+
+  .footer-column ul {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #connected #o-que-e-a-caramelo-coin .container {
+    padding: 0 !important;
+  }
+
+  #connected  #o-que-e-a-caramelo-coin > div > div:first-child > div.col-md-6.parent {
+    left: 4px;
+  }
+
+  #connected  .community {
+    left: 0;
+  }
+
+
+}
+
+footer {
+  padding: 0 4rem;
+}
+
+#whitepaper ul {
+  margin-left: 0px;
 }
   
 

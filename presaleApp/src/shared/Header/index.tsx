@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 'use client';
 import React, { useState } from 'react';
+// import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -130,6 +131,10 @@ export const Header: React.FC = () => {
                   <div className="tooltip-body"></div>
                 </div>
               </li>
+
+              {/* <li  className="tooltip" role="tooltip opacity1">
+                <ConnectButton />
+              </li> */}
             </ul>
           </nav>
           <span className="menu-trigger" onClick={toggleMenu}>

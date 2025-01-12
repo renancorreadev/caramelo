@@ -10,18 +10,17 @@ interface ContainerProps {
 export const Container: React.FC<ContainerProps> = ({ children, className }) => {
   return (
     <div
-      className={`w-full min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center relative overflow-hidden ${className}`}
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900 to-gray-800"></div>
+      className={`relative w-full bg-gray-900 text-white flex flex-col items-center ${className}`}
 
+    >
       {/* Contêiner do vídeo */}
       <div
         id="video-container"
         style={{
-          position: 'relative',
-          width: '100vw',
-          height: '100vh', // Garante altura máxima para o vídeo
-          overflow: 'hidden',
+          position: "absolute",
+          inset: 0,
+          zIndex: 0, // Vídeo em segundo plano
+          overflow: "hidden",
         }}
       >
         <video
@@ -31,22 +30,21 @@ export const Container: React.FC<ContainerProps> = ({ children, className }) => 
           loop
           muted
           style={{
-            width: '100%',
-            height: '100%',
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
             opacity: 0.1,
-            objectFit: 'cover',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: 0, // Coloca o vídeo atrás
           }}
         >
           <source src="/media/carameloheader.mp4" type="video/mp4" />
         </video>
       </div>
 
-      {/* Contêiner para o conteúdo sobre o vídeo */}
-      <div className="absolute  flex flex-col items-center justify-center z-10">
+      {/* Contêiner para o conteúdo */}
+      <div
+        className="relative z-10 flex flex-col items-center w-full xs:py-[6rem] sm:py-[9rem]"
+  
+      >
         {children}
       </div>
     </div>
