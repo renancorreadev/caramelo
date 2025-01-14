@@ -2339,6 +2339,9 @@ h3 {
   font-size: 1.5rem !important;
 }
 @media (max-width: 575px) {
+  .dogelogo {
+    padding-top: 4rem;
+  }
   .parent {
     position: relative;
     top: 0;
@@ -2362,7 +2365,7 @@ h3 {
     width: 95%;
     position: relative;
     top: 5vh;
-    left: 0;
+    left: -31px;
     max-width: 28rem;
   }
   .parent-numbers {
@@ -3715,7 +3718,14 @@ button[data-testid="rk-connect-button"] {
     left: 0;
   }
 
+  .footer-container {
+    margin-top: 0 !important;
+  }
 
+  #sobre {
+    position: relative;
+    bottom: 2rem;
+  }
 }
 
 footer {

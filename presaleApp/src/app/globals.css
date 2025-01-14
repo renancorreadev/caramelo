@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* styles/bootstrap-overrides.css */
+
+@media (prefers-color-scheme: dark) {
+   #text, #sobre, p , h2 {
+      color: #fff !important;
+    }
+  }
+  

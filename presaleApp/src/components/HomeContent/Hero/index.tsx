@@ -58,7 +58,10 @@ export const Hero = () => {
           }
         >
           <img
-            className="dogelogo lg:max-w-[450px] mb-5"
+            style={{
+              marginTop: '0rem !important',
+            }}
+            className="dogelogo lg:max-w-[450px]"
             src="/images/caramelo.svg"
             alt="Caramelo Coin"
           />

@@ -68,6 +68,7 @@ export const PageContent = () => {
             <div className="col-md-12">
               <div className="kabosu-content" style={{ minWidth: '100%' }}>
                 <h2
+                  id="text"
                   className="title display-5 text-start text-dark comic-neue"
                   style={{ marginBottom: '20px' }}
                 >
@@ -75,9 +76,9 @@ export const PageContent = () => {
                 </h2>
                 <br />
                 <br />
-                <div className="row xs:gap-y-[0px]  sm:gap-y-4">
+                <div className="row xs:gap-y-[0px]  sm:gap-y-4 xs:!flex-col xs:!flex-nowrap">
                   <div
-                    className="col-sm-4 parent-numbers"
+                    className="col-sm-4 parent-numbers xs:!h-48"
                     data-aos="fade-left"
                     data-aos-offset="100"
                     data-aos-delay="10"
@@ -96,7 +97,7 @@ export const PageContent = () => {
                     </p>
                   </div>
                   <div
-                    className="col-sm-4 parent-numbers"
+                     className="col-sm-4 parent-numbers xs:!h-48"
                     data-aos="fade-right"
                     data-aos-offset="100"
                     data-aos-delay="10"
@@ -112,7 +113,7 @@ export const PageContent = () => {
                     </p>
                   </div>
                   <div
-                    className="col-sm-4 parent-numbers"
+                    className="col-sm-4 parent-numbers xs:!h-48"
                     data-aos="fade-left"
                     data-aos-offset="100"
                     data-aos-delay="10"
@@ -176,10 +177,12 @@ export const PageContent = () => {
               </div>
               <div className="col-lg-6">
                 <h2
+                  id="text"
                   className={`
                     text-xl font-bold text-dark comic-neue text-left pt-3
                     xs:text-2xl xs:pt-5 xs:text-center
                     sm:text-3xl sm:pt-6 sm:text-center
+                    text-dark 
                 `}
                 >
                   Por Que Investir na Caramelo Coin?
@@ -196,7 +199,7 @@ export const PageContent = () => {
                     >
                       Impacto Social Real:
                     </h3>
-                    <p className="text-gray-700">
+                    <p id="text" className="text-gray-700">
                       Cada transação apoia ONGs que resgatam e cuidam de cães
                       abandonados.
                     </p>
@@ -211,7 +214,7 @@ export const PageContent = () => {
                     >
                       Modelo Deflacionário:
                     </h3>
-                    <p className="text-gray-700">
+                    <p id="text"className="text-gray-700">
                       O valor dos tokens aumenta ao longo do tempo com um
                       mecanismo de queima automático.
                     </p>
@@ -226,7 +229,7 @@ export const PageContent = () => {
                     >
                       Segurança e Transparência:
                     </h3>
-                    <p className="text-gray-700">
+                    <p id="text" className="text-gray-700">
                       Baseada na Binance Smart Chain, garantindo transações
                       rápidas e seguras.
                     </p>
@@ -241,7 +244,7 @@ export const PageContent = () => {
                     >
                       Comunidade Engajada:
                     </h3>
-                    <p className="text-gray-700">
+                    <p id="text" className="text-gray-700">
                       Junte-se a um movimento que une tecnologia e amor pelos
                       animais.
                     </p>
@@ -256,6 +259,7 @@ export const PageContent = () => {
             <div className="row pb-5">
               <div className="col-lg-6">
                 <h2
+                  id="text"
                   className={`
                     text-xl font-bold text-dark comic-neue text-left pt-3 
                     xs:text-2xl xs:pt-5 xs:text-start
