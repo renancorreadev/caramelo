@@ -21,7 +21,7 @@ export const PageContent = () => {
   }, []);
 
   return (
-    <main>
+    <main id="home-page">
       <div id="o-que-e-a-caramelo-coin" className="pt-5">
         <div className="container p-5">
           <div className="row">

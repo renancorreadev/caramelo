@@ -6,7 +6,7 @@
 /* styles/bootstrap-overrides.css */
 
 @media (prefers-color-scheme: dark) {
-   #text, #sobre, p , h2 {
+   #text, #sobre, #home-page p , #footer-text, #home-page h2 {
       color: #fff !important;
     }
   }

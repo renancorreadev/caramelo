@@ -19,7 +19,7 @@ export const Footer = () => {
                 alt="Caramelo Coin logo"
               />
               <div className="logo-labels">
-                <div  className="comic-neue flex justify-center items-center text-center text-black ">
+                <div id="footer-text" className="comic-neue flex justify-center items-center text-center text-black ">
                   CARAMELOCOIN
                 </div>
               </div>
