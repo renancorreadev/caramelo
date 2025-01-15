@@ -86,7 +86,7 @@ export const Header: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://www.caramelocoin.com/images/CarameloCoin-RoadMap.pdf"
+                  href="https://www.caramelocoin.com/docs/Caramelo-Coin-Roadmap.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="comic-neue tooltip-body-sub"

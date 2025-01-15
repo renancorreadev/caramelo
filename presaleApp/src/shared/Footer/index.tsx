@@ -61,7 +61,7 @@ export const Footer = () => {
               </li>
               <li>
                 <a
-                  href="https://www.caramelocoin.com/docs/RoadMap-caramelocoin.pdf"
+                  href="https://www.caramelocoin.com/docs/Caramelo-Coin-Roadmap.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -82,7 +82,7 @@ export const Footer = () => {
               </li>
               <li>
                 <a
-                  href="https://www.caramelocoin.com/docs/whitepaper.pdf"
+                  href="https://www.caramelocoin.com/docs/Caramelo-Coin-Roadmap.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
