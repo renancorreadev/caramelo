@@ -21,7 +21,7 @@ const PresaleForm = () => {
   const [contract, setContract] = useState<any>(null);
   const [amount, setAmount] = useState('');
   const [remaining, setRemaining] = useState('0');
-  const [totalRaised, setTotalRaised] = useState('0');
+  // const [totalRaised, setTotalRaised] = useState('0');
   const [carameloBalance, setCarameloBalance] = useState('0');
   const [tokenContract, setTokenContract] = useState<any>(null);
 
@@ -52,13 +52,13 @@ const PresaleForm = () => {
 
     try {
       const remainingTokens = await contract.tokensRemaining();
-      const totalRaisedBNB = await contract.totalBNBReceived();
+      // const totalRaisedBNB = await contract.totalBNBReceived();
       const carameloTokenBalance = await tokenContract.balanceOf(
         walletClient?.account.address
       );
 
       setRemaining(ethers.formatUnits(remainingTokens, 6));
-      setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
+      // setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
       setCarameloBalance(ethers.formatUnits(carameloTokenBalance, 9));
     } catch (error) {
       console.error('Erro ao carregar informações:', error);
@@ -151,11 +151,11 @@ const PresaleForm = () => {
                 style={{ width: `${(Number(remaining) / 1000000) * 100}%` }}
               />
             </div>
-            <div className="text-right text-sm text-gray-400">
+            <div className="text-start text-sm text-gray-400">
               {remaining} Tokens
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+          {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
             <div className="flex items-center gap-3">
               <img src="/bnb.png" alt="BNB" className="w-8 h-8" />
               <span className="text-gray-400 text-lg">BNB Arrecadados:</span>
@@ -163,12 +163,12 @@ const PresaleForm = () => {
             <span className="font-semibold text-white text-lg sm:text-right">
               {totalRaised} BNB
             </span>
-          </div>
+          </div> */}
 
           <div className="flex flex-col items-start gap-2">
             <div className="flex items-center gap-3">
               <img src="/dog.png" alt="Caramelo" className="w-8 h-8" />
-              <span className="text-gray-400 text-lg">Saldo Caramelo:</span>
+              <span className="text-gray-400 text-lg ">Saldo Caramelo:</span>
             </div>
             <span className="font-semibold text-white text-xl pl-11">
               {carameloBalance} CARAMELO
@@ -209,7 +209,7 @@ const PresaleForm = () => {
           onClick={handleAddToken}
           className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
         >
-          Adicionar Token à MetaMask
+          Adicionar Token à Carteira
         </button>
       </div>
     </div>

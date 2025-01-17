@@ -97,7 +97,7 @@ export const PageContent = () => {
                     </p>
                   </div>
                   <div
-                     className="col-sm-4 parent-numbers xs:!h-48"
+                    className="col-sm-4 parent-numbers xs:!h-48"
                     data-aos="fade-right"
                     data-aos-offset="100"
                     data-aos-delay="10"
@@ -214,7 +214,7 @@ export const PageContent = () => {
                     >
                       Modelo Deflacionário:
                     </h3>
-                    <p id="text"className="text-gray-700">
+                    <p id="text" className="text-gray-700">
                       O valor dos tokens aumenta ao longo do tempo com um
                       mecanismo de queima automático.
                     </p>
@@ -250,6 +250,182 @@ export const PageContent = () => {
                     </p>
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="info-token-section" className="sm:pb-5 xs:pb-4">
+            <div id="info-text" className="info-section">
+              <h2
+                style={{ marginTop: 0 }}
+                className={`
+                  sm:text-4xl font-bold text-gray-800 comic-neue mb-10 text-center sm:!pt-8
+                  xs:text-2xl  xs:!pt-8
+                `}
+              >
+                Informações de Token
+              </h2>
+            </div>
+
+            <div id="info-section" className="info-section bg-gray-100 pt-4">
+              <div className="container mx-auto px-4 lg:px-8 xs:!flex-col">
+                <div className="w-full flex flex-wrap xs:flex-col lg:flex-nowrap sm:pb-6 ">
+                  <div className="w-full lg:w-1/2 flex flex-col sm:px-2">
+                    <div className="flex-1 bg-white shadow-lg rounded-lg p-6 md:p-10">
+                      <h3
+                        style={{ marginTop: 0 }}
+                        id="text"
+                        className={`
+                          text-3xl font-bold text-gray-800 comic-neue mb-6 text-center
+                          xs:text-4xl sm:text-5xl
+                        `}
+                      >
+                        Token
+                      </h3>
+                      <ul className="gap-2 text-gray-800 text-lg xs:text-sm lg:text-xl flex flex-col items-start text-start">
+                        <li className="flex xs:flex-col items-start gap-4">
+                          <svg
+                            className="w-8 h-8 text-yellow-600 flex-shrink-0 xs:hidden"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="comic-neue text-lg">
+                            <strong>Nome:</strong> Caramelo Coin
+                          </span>
+                        </li>
+                        <li className="flex xs:flex-col items-start gap-4">
+                          <svg
+                            className="w-8 h-8 text-yellow-600 flex-shrink-0 xs:hidden"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="comic-neue text-lg">
+                            <strong>Símbolo:</strong> CARAMELO
+                          </span>
+                        </li>
+                        <li className="flex xs:flex-col items-start gap-4">
+                          <svg
+                            className="w-8 h-8 text-yellow-600 flex-shrink-0 xs:hidden"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="comic-neue text-lg">
+                            <strong>Supply Total:</strong>{' '}
+                            420,000,000,000,000,000
+                          </span>
+                        </li>
+                        <li className="flex xs:flex-col items-start gap-4">
+                          <svg
+                            className="w-8 h-8 text-yellow-600 flex-shrink-0 xs:hidden"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="comic-neue text-lg">
+                            <strong>Contrato:</strong> 0xe6...e349
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="w-full lg:w-1/2 xs:py-4 flex flex-col sm:px-2">
+                    <div className="flex-1 bg-white shadow-lg rounded-lg p-6 md:p-10">
+                      <h3
+                        style={{ marginTop: 0 }}
+                        id="text"
+                        className={`
+              text-3xl font-bold text-gray-800 comic-neue mb-6 text-center
+              xs:text-4xl sm:text-5xl
+            `}
+                      >
+                        Pré-venda
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="table-auto w-full text-left border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="border-b-2 py-2 px-4 text-lg text-gray-800 comic-neue">
+                                1 BNB
+                              </th>
+                              <th className="border-b-2 py-2 px-4 text-lg text-gray-800 comic-neue">
+                                Tokens
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue">
+                                Fase 1
+                              </td>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue">
+                                5,250,000,000.000000000
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue">
+                                Fase 2
+                              </td>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue">
+                                4,000,000,000.000000000
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue  ">
+                                Fase 3
+                              </td>
+                              <td className="border-b py-2 px-4 text-gray-700 comic-neue">
+                                3,000,000,000.000000000
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 px-4 text-gray-700 comic-neue">
+                                Tokens
+                              </td>
+                              <td className="py-2 px-4 text-gray-700 comic-neue">
+                                42,000,000,000.000000000
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

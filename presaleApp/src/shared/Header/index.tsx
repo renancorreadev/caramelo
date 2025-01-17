@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 'use client';
 import React, { useState } from 'react';
-// import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -62,7 +62,7 @@ export const Header: React.FC = () => {
             }
           `}</style>
           <nav className="menu">
-            <ul className="menu__inner">
+            <ul className="menu__inner ">
               <li>
                 <a href="https://www.caramelocoin.com" className="comic-neue tooltip-body-sub">
                   Home
@@ -114,27 +114,10 @@ export const Header: React.FC = () => {
                   Pré-Venda
                 </a>
               </li>
-              <li>
-                <a href="https://www.caramelocoin.com/en">
-                  <img
-                    src="https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/US.svg"
-                    alt="US Flag"
-                    style={{ width: '20px', height: '20px' }}
-                  />
-                </a>
-              </li>
-              <li className="tooltip" role="tooltip opacity1">
-                <span>
-                  <span className="caret"></span>
-                </span>
-                <div className="tooltip-content">
-                  <div className="tooltip-body"></div>
-                </div>
-              </li>
 
-              {/* <li  className="tooltip" role="tooltip opacity1">
-                <ConnectButton />
-              </li> */}
+              <li id="connect-button" className="tooltip" role="tooltip opacity1" > 
+                <ConnectButton label="Conectar" />
+              </li>
             </ul>
           </nav>
           <span className="menu-trigger" onClick={toggleMenu}>

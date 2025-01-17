@@ -3735,8 +3735,16 @@ footer {
 #whitepaper ul {
   margin-left: 0px;
 }
-  
+ 
+@media screen and (min-width: 720px) {
 
+  #connect-button {
+    padding-left: 1rem;
+  }
+}
 
+#connect-button > :first-child {
+  width: 90px;
+}
 /*# sourceMappingURL=main.css.map */
 
