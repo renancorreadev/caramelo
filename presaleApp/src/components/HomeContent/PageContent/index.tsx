@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import { useIsMobile } from '../../../hooks/useMobile';
 
 /* eslint-disable @next/next/no-img-element */
 export const PageContent = () => {
+  const isMobile = useIsMobile();
+
   // Inicializando o AOS
   useEffect(() => {
     const initializeAOS = () => {
@@ -23,17 +26,17 @@ export const PageContent = () => {
   return (
     <main id="home-page">
       <div id="o-que-e-a-caramelo-coin" className="pt-5">
-        <div className="container p-5">
+        <div className="container p-5 xs:!flex-col xs:!pb-0">
           <div className="row">
             <div className="col-md-6 xs:!pt-0">
               <div className="kabosu-content xs:!pt-0">
                 <h2
-                  className="title display-5 text-start text-dark comic-neue xs:!mt-0"
+                  className="xs:!text-center title display-5 sm:text-start text-dark comic-neue xs:!my-12 sm:!mt-0"
                   id="sobre"
                 >
                   O que é a Caramelo Coin?
                 </h2>
-                <p className="fs-3 lh-md comic-neue">
+                <p className="fs-3 lh-md comic-neue sm:!my-4">
                   Uma moeda digital que transforma a vida dos cachorros de rua{' '}
                   <span className="fs-3 fw-bold text-warning comic-neue">
                     e resgata a essência dos caramelos, verdadeiros ícones do
@@ -54,7 +57,7 @@ export const PageContent = () => {
                 </p>
               </div>
             </div>
-            <div className="col-md-6 parent">
+            <div className={`col-md-6 ${isMobile ? '' : 'parent'}`}>
               <div>
                 <img
                   className="over"
@@ -69,7 +72,7 @@ export const PageContent = () => {
               <div className="kabosu-content" style={{ minWidth: '100%' }}>
                 <h2
                   id="text"
-                  className="title display-5 text-start text-dark comic-neue"
+                  className="title display-5 sm:text-start xs:text-center text-dark comic-neue title-h2 xs:!mt-12"
                   style={{ marginBottom: '20px' }}
                 >
                   Como começar!
@@ -138,7 +141,7 @@ export const PageContent = () => {
       </div>
       <div id="community" className="community">
         <div className="container">
-          <div className="grid grid-cols-2 gap-4 pb-5 doge-graphics xs:grid-cols-1 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4 pb-5 doge-graphics xs:grid-cols-1 sm:grid-cols-2 sm:!p-[3rem]">
             {['c1.jpg', 'c2.jpg', 'c5.jpg', 'c4.jpg'].map((image, index) => (
               <div
                 className="col-span-1 flex justify-center items-center"
@@ -159,35 +162,29 @@ export const PageContent = () => {
             ))}
           </div>
 
-          <div>
+          <div className="">
             <div
-              className="row pb-5"
+              className={`row pb-5 ${isMobile ? 'kabosu-content' : ''}`}
               data-aos="fade-down"
               data-aos-offset="100"
               data-aos-delay="10"
               data-aos-duration="1000"
-            ></div>
-            <div className="row pb-5">
-              <div className="col-lg-6">
-                <img
-                  src="/images/caramelocoin.png"
-                  alt="Caramelo Coin"
-                  style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
-                />
-              </div>
-              <div className="col-lg-6">
-                <h2
-                  id="text"
-                  className={`
-                    text-xl font-bold text-dark comic-neue text-left pt-3
-                    xs:text-2xl xs:pt-5 xs:text-center
-                    sm:text-3xl sm:pt-6 sm:text-center
+            >
+              <h2
+                style={{ marginTop: '0 !important' }}
+                id="text"
+                className={`
+                    xs:text-center sm:text-start text-xl font-bold text-dark comic-neue text-left pt-3 title-h2
+                    xs:text-2xl xs:!mt-0  sm:!px-[3rem]
+                    sm:text-3xl sm:pt-6 
                     text-dark 
                 `}
-                >
-                  Por Que Investir na Caramelo Coin?
-                </h2>
-
+              >
+                Por Que Investir na Caramelo Coin?
+              </h2>
+            </div>
+            <div className="row pb-5">
+              <div className="col-lg-6 xs:kabosu-content ">
                 <ul className="mt-4 space-y-6 text-left text-gray-700 text-base xs:text-sm lg:text-xl">
                   <li className="flex flex-col gap-1 xs:gap-2">
                     <h3
@@ -251,15 +248,23 @@ export const PageContent = () => {
                   </li>
                 </ul>
               </div>
+
+              <div className="col-lg-6 items-center flex">
+                <img
+                  src="/images/caramelocoin.png"
+                  alt="Caramelo Coin"
+                  style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
             </div>
           </div>
 
-          <div id="info-token-section" className="sm:pb-5 xs:pb-4">
-            <div id="info-text" className="info-section">
+          <div id="info-token-section" className="sm:pb-5 xs:pb-4 sm:!px-[3rem]">
+            <div id="info-text" className={`info-section ${isMobile ? 'kabosu-content' : ''}`}>
               <h2
                 style={{ marginTop: 0 }}
                 className={`
-                  sm:text-4xl font-bold text-gray-800 comic-neue mb-10 text-center sm:!pt-8
+                  sm:text-start xs:text-center title-h2 sm:text-4xl font-bold text-gray-800 comic-neue mb-10  sm:!pt-8
                   xs:text-2xl  xs:!pt-8
                 `}
               >
@@ -267,7 +272,7 @@ export const PageContent = () => {
               </h2>
             </div>
 
-            <div id="info-section" className="info-section bg-gray-100 pt-4">
+            <div id="info-section" className="info-section pt-4">
               <div className="container mx-auto px-4 lg:px-8 xs:!flex-col">
                 <div className="w-full flex flex-wrap xs:flex-col lg:flex-nowrap sm:pb-6 ">
                   <div className="w-full lg:w-1/2 flex flex-col sm:px-2">
@@ -357,7 +362,14 @@ export const PageContent = () => {
                             />
                           </svg>
                           <span className="comic-neue text-lg">
-                            <strong>Contrato:</strong> 0xe6...e349
+                            <strong>Contrato:</strong>
+                            <a
+                              href="https://bscscan.com/token/0xe600B09584619274984CB58a2C2ac9A954D6e349"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              0xe6...e349
+                            </a>
                           </span>
                         </li>
                       </ul>
@@ -431,15 +443,18 @@ export const PageContent = () => {
           </div>
 
           {/** Whitepaper */}
-          <div id="whitepaper">
-            <div className="row pb-5">
+          <div id="whitepaper" className="sm:!px-[3rem]">
+            <div
+              className={`row pb-5 ${isMobile ? 'kabosu-content' : ''}`}
+              style={{ paddingTop: '0 !important' }}
+            >
               <div className="col-lg-6">
                 <h2
                   id="text"
                   className={`
-                    text-xl font-bold text-dark comic-neue text-left pt-3 
-                    xs:text-2xl xs:pt-5 xs:text-start
-                    sm:text-3xl sm:pt-6 sm:text-start sm:!mt-0
+                    sm:text-start xs:text-center text-xl font-bold text-dark comic-neue text-left pt-3 title-h2
+                    xs:text-2xl xs:!mt-0 xs:!mb-12
+                    sm:text-3xl sm:pt-6 sm:!mt-0
                 `}
                 >
                   Distribuição de tokens

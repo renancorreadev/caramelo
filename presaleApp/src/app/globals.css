@@ -6,8 +6,28 @@
 /* styles/bootstrap-overrides.css */
 
 @media (prefers-color-scheme: dark) {
-   #text, #sobre, #home-page p , #footer-text, #home-page h2 {
+   #text, #sobre, #home-page p , #footer-text, #home-page, h2 {
       color: #fff !important;
+    }
+
+    #info-section h3 {
+      background-color: rgba(234, 179, 8 , .4) !important;
+      border-radius: 1rem;
+      padding: .4rem;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      color: #000 !important;
+    }
+
+    #info-section ul strong {
+      color: #000 !important;
     }
   }
   
+  #info-section {
+    background-color: rgba(234, 179, 8 , .4) !important;
+    border-radius: 1rem;
+    padding: .4rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }

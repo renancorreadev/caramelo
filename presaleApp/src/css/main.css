@@ -2352,7 +2352,7 @@ h3 {
     height: 100%;
     text-align: left;
     left: 7.5vw;
-    padding: 3rem !important;
+    padding: 2rem !important;
     padding-bottom: 1rem !important;
   }
   .under {
@@ -2362,11 +2362,7 @@ h3 {
     max-width: 24rem;
   }
   .over {
-    width: 95%;
-    position: relative;
-    top: 5vh;
-    left: -31px;
-    max-width: 28rem;
+  
   }
   .parent-numbers {
     height: 38vh;
@@ -3722,9 +3718,17 @@ button[data-testid="rk-connect-button"] {
     margin-top: 0 !important;
   }
 
-  #sobre {
-    position: relative;
-    bottom: 2rem;
+  #sobre, .title-h2 {
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.1em;
+    display: block;
+    letter-spacing: -1px;
+
+  }
+
+  #o-que-e-a-caramelo-coin > .container {
+    padding-bottom: 0 !important;
   }
 }
 
@@ -3737,6 +3741,14 @@ footer {
 }
  
 @media screen and (min-width: 720px) {
+
+  #sobre, .title-h2 {
+    font-weight: 700;
+    font-size: 45px;
+    line-height: 1.1em;
+    display: block;
+    letter-spacing: -1px;
+  }
 
   #connect-button {
     padding-left: 1rem;
