@@ -8,24 +8,35 @@ import {
   Caramelo__factory,
 } from '../../utils/typechain';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { BsCurrencyBitcoin } from 'react-icons/bs'; // Ícone de BNB
+import { BsCurrencyBitcoin } from 'react-icons/bs';
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || '';
 const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || '';
 
 const PresaleForm = () => {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const [isMetaMask, setIsMetaMask] = useState(false);
 
   const [contract, setContract] = useState<any>(null);
   const [amount, setAmount] = useState('');
   const [remaining, setRemaining] = useState('0');
-  // const [totalRaised, setTotalRaised] = useState('0');
+  const [totalRaised, setTotalRaised] = useState('0');
   const [carameloBalance, setCarameloBalance] = useState('0');
   const [tokenContract, setTokenContract] = useState<any>(null);
 
+  const allowedAddresses = [
+    '0xdCA1b295fAb25ebCFA1BF3834599Bd8606A64bF6'.toLowerCase(),
+    '0x14864Bc81FEed0ec2AA2E1826f82b1801D55C47f'.toLowerCase(),
+    '0x5707595910eC3D839d8348720E9C7E1d47784457'.toLowerCase(),
+  ];
+
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
+      setIsMetaMask(true);
+    }
+
     if (!walletClient) return;
 
     const setupContract = async () => {
@@ -52,13 +63,13 @@ const PresaleForm = () => {
 
     try {
       const remainingTokens = await contract.tokensRemaining();
-      // const totalRaisedBNB = await contract.totalBNBReceived();
+      const totalRaisedBNB = await contract.totalBNBReceived();
       const carameloTokenBalance = await tokenContract.balanceOf(
         walletClient?.account.address
       );
 
       setRemaining(ethers.formatUnits(remainingTokens, 6));
-      // setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
+      setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
       setCarameloBalance(ethers.formatUnits(carameloTokenBalance, 9));
     } catch (error) {
       console.error('Erro ao carregar informações:', error);
@@ -155,15 +166,20 @@ const PresaleForm = () => {
               {remaining} Tokens
             </div>
           </div>
-          {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-            <div className="flex items-center gap-3">
-              <img src="/bnb.png" alt="BNB" className="w-8 h-8" />
-              <span className="text-gray-400 text-lg">BNB Arrecadados:</span>
-            </div>
-            <span className="font-semibold text-white text-lg sm:text-right">
-              {totalRaised} BNB
-            </span>
-          </div> */}
+          {isConnected &&
+            allowedAddresses.includes(address?.toLowerCase() || '') && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                <div className="flex items-center gap-3">
+                  <img src="/bnb.png" alt="BNB" className="w-8 h-8" />
+                  <span className="text-gray-400 text-lg">
+                    BNB Arrecadados:
+                  </span>
+                </div>
+                <span className="font-semibold text-white text-lg sm:text-right">
+                  {Number(totalRaised).toFixed(1)} BNB
+                </span>
+              </div>
+            )}
 
           <div className="flex flex-col items-start gap-2">
             <div className="flex items-center gap-3">
@@ -204,13 +220,14 @@ const PresaleForm = () => {
         >
           Comprar Tokens
         </button>
-
-        <button
-          onClick={handleAddToken}
-          className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
-        >
-          Adicionar Token à Carteira
-        </button>
+        {isMetaMask && (
+          <button
+            onClick={handleAddToken}
+            className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
+          >
+            Adicionar Token à Carteira
+          </button>
+        )}
       </div>
     </div>
   );
