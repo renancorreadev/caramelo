@@ -30,6 +30,7 @@ const PresaleForm = () => {
     '0xdCA1b295fAb25ebCFA1BF3834599Bd8606A64bF6'.toLowerCase(),
     '0x14864Bc81FEed0ec2AA2E1826f82b1801D55C47f'.toLowerCase(),
     '0x5707595910eC3D839d8348720E9C7E1d47784457'.toLowerCase(),
+    '0x5C63ccd7eA8f1676F7A8E20C0084De8e7d98E419'.toLowerCase(),
   ];
 
   useEffect(() => {
