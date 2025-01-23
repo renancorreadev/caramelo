@@ -10,6 +10,7 @@ import {
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { BsCurrencyBitcoin } from 'react-icons/bs';
 import { useIsMobile } from '@/hooks/useMobile';
+import toast from 'react-hot-toast';
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || '';
@@ -37,33 +38,36 @@ const PresaleForm = () => {
   ];
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
-      setIsMetaMask(true);
+    try {
+      if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
+        setIsMetaMask(true);
+      }
+
+      if (!walletClient) return;
+      const bnbBalance = formatUnits(balance?.value || 0, 18);
+      setBNBBalance(Number(bnbBalance));
+
+      const setupContract = async () => {
+        const provider = new ethers.BrowserProvider(walletClient);
+        const signer = await provider.getSigner();
+        const contractInstance = CarameloPreSale__factory.connect(
+          CONTRACT_ADDRESS,
+          signer
+        );
+
+        const tokenContractInstance = Caramelo__factory.connect(
+          TOKEN_ADDRESS,
+          signer
+        );
+        setContract(contractInstance);
+        setTokenContract(tokenContractInstance);
+      };
+
+      setupContract();
+    } catch (error) {
+      toast.error('Erro ao carregar informações.');
+      console.error('Erro ao carregar informações:', error);
     }
-
-    if (!walletClient) return;
-
-    const setupContract = async () => {
-      const provider = new ethers.BrowserProvider(walletClient);
-      const signer = await provider.getSigner();
-      const contractInstance = CarameloPreSale__factory.connect(
-        CONTRACT_ADDRESS,
-        signer
-      );
-
-      const tokenContractInstance = Caramelo__factory.connect(
-        TOKEN_ADDRESS,
-        signer
-      );
-      setContract(contractInstance);
-      setTokenContract(tokenContractInstance);
-    };
-
-    const bnbBalance = formatUnits(balance?.value || 0, 18);
-
-    setBNBBalance(Number(bnbBalance));
-
-    setupContract();
   }, [walletClient, balance]);
 
   const loadPresaleInfo = useCallback(async () => {
@@ -80,28 +84,104 @@ const PresaleForm = () => {
       setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
       setCarameloBalance(ethers.formatUnits(carameloTokenBalance, 9));
     } catch (error) {
+      toast.error('Erro ao carregar informações da pré-venda.');
       console.error('Erro ao carregar informações:', error);
     }
   }, [contract, tokenContract, walletClient]);
 
   const handleBuy = async () => {
     if (!contract) {
-      alert('Conecte sua carteira antes de comprar.');
+      toast.error('Conecte sua carteira antes de comprar.');
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Por favor, insira um valor válido de BNB.');
+      return;
+    }
+
+    if (BNBBalance && parseFloat(amount) > BNBBalance) {
+      toast.error('Saldo insuficiente de BNB.');
       return;
     }
 
     try {
+      toast.loading('Processando compra...');
+
       const tx = await contract.buyTokens({
         value: ethers.parseEther(amount),
       });
       await tx.wait();
-      alert('Compra realizada com sucesso!');
+      toast.dismiss();
+      toast.success('Compra realizada com sucesso!');
       loadPresaleInfo();
     } catch (error) {
       console.error('Erro ao comprar tokens:', error);
-      alert('Erro ao comprar tokens.');
+      toast.error(parseContractError(error));
     }
   };
+
+  const parseContractError = (error: any): string => {
+    console.error('Erro detectado:', error);
+  
+    if (error?.data?.message) {
+      const errorMsg = error.data.message;
+  
+      if (errorMsg.includes('InsufficientFunds')) {
+        return 'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.';
+      }
+  
+      if (errorMsg.includes('InvalidPhase')) {
+        return 'A pré-venda não está ativa no momento. Aguarde a fase correta.';
+      }
+  
+      if (errorMsg.includes('PreSaleNotActive')) {
+        return 'A pré-venda ainda não está ativa. Tente novamente mais tarde.';
+      }
+  
+      if (errorMsg.includes('NoTokensAvailable')) {
+        return 'Não há tokens suficientes disponíveis para compra. Tente um valor menor.';
+      }
+  
+      if (errorMsg.includes('InvalidTokenAmount')) {
+        return 'A quantidade de tokens inserida é inválida. Insira um valor válido.';
+      }
+  
+      if (errorMsg.includes('PreSaleAlreadyInitialized')) {
+        return 'A pré-venda já foi inicializada. Não é possível reiniciá-la.';
+      }
+  
+      if (errorMsg.includes('ZeroAddress')) {
+        return 'Endereço de destino inválido. Verifique os dados e tente novamente.';
+      }
+  
+      if (errorMsg.includes('WithdrawalFailed')) {
+        return 'Falha ao tentar sacar os fundos. Entre em contato com o suporte.';
+      }
+  
+      if (errorMsg.includes('MaxTokensBuyExceeded')) {
+        return 'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.';
+      }
+  
+      if (errorMsg.includes('InvalidPhaseRate')) {
+        return 'Taxa de fase inválida. Entre em contato com o suporte para mais informações.';
+      }
+    } 
+    
+    // Captura de erro quando não há saldo suficiente para gas/BNB
+    if (error?.code === 'CALL_EXCEPTION' && error.reason === null && error.data === null) {
+      return 'Saldo insuficiente para pagar o gás da transação. Deposite BNB em sua carteira.';
+    }
+  
+    if (error?.message) {
+      if (error.message.includes('insufficient funds')) {
+        return 'Saldo insuficiente na carteira para completar a transação.';
+      }
+    }
+  
+    return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
+  };
+  
 
   const handleAddToken = async () => {
     const tokenDetails = {
@@ -171,7 +251,7 @@ const PresaleForm = () => {
               />
             </div>
             <div className="sm:text-start text-sm text-gray-400 xs:flex xs:justify-center xs:items-center">
-              {remaining} 
+              {remaining}
             </div>
           </div>
 
@@ -190,12 +270,14 @@ const PresaleForm = () => {
               </div>
             )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-around mb-4 gap-2">
-          <div className="flex items-center gap-3 w-full">
-            <img src="/dog.png" alt="Caramelo" className="w-8 h-8" />
-            <span className="text-gray-400 text-lg sm:w-full">Saldo Caramelo:</span>
-          </div>
-          <span className="font-semibold text-white text-lg sm:text-right sm:w-full sm:flex sm:flex-col sm:items-end">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-around mb-4 gap-2">
+            <div className="flex items-center gap-3 w-full">
+              <img src="/dog.png" alt="Caramelo" className="w-8 h-8" />
+              <span className="text-gray-400 text-lg sm:w-full">
+                Saldo Caramelo:
+              </span>
+            </div>
+            <span className="font-semibold text-white text-lg sm:text-right sm:w-full sm:flex sm:flex-col sm:items-end">
               {carameloBalance} CARAMELO
             </span>
           </div>
@@ -224,7 +306,7 @@ const PresaleForm = () => {
         {isMobile && (
           <div className="flex flex-row justify-around">
             <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-lg">Saldo BNB:</span>
+              <span className="text-gray-400 text-lg">Saldo BNB:</span>
               <img src="/bnb.png" alt="BNB" className="w-5 h-5" />
             </div>
 

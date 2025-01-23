@@ -2,6 +2,8 @@ import Script from 'next/script';
 import type { Metadata } from 'next';
 import { Header, Footer } from '../shared';
 import { Comic_Neue } from 'next/font/google';
+import { Toaster } from 'react-hot-toast';
+
 import './globals.css';
 import '../css/all.min.css';
 import '../css/aos.css';
@@ -36,6 +38,7 @@ export default function RootLayout({
         <Script src="/js/jquery.min.js" strategy="afterInteractive" />
        
         <Providers>
+        <Toaster position="top-right" reverseOrder={false} />
           <div
             style={{
               display: 'flex',
