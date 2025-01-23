@@ -1,31 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import { useWalletClient, useAccount } from 'wagmi';
+import { ethers, formatUnits } from 'ethers';
+import { useWalletClient, useAccount, useBalance } from 'wagmi';
 import {
   CarameloPreSale__factory,
   Caramelo__factory,
 } from '../../utils/typechain';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { BsCurrencyBitcoin } from 'react-icons/bs';
+import { useIsMobile } from '@/hooks/useMobile';
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || '';
 const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || '';
 
 const PresaleForm = () => {
-  const { isConnected, address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const [isMetaMask, setIsMetaMask] = useState(false);
+  const { data: balance } = useBalance();
+  const { isConnected, address } = useAccount();
 
+  const [isMetaMask, setIsMetaMask] = useState<boolean>(false);
   const [contract, setContract] = useState<any>(null);
-  const [amount, setAmount] = useState('');
-  const [remaining, setRemaining] = useState('0');
-  const [totalRaised, setTotalRaised] = useState('0');
-  const [carameloBalance, setCarameloBalance] = useState('0');
+  const [amount, setAmount] = useState<string>('');
+  const [remaining, setRemaining] = useState<string>('0');
+  const [totalRaised, setTotalRaised] = useState<string>('0');
+  const [carameloBalance, setCarameloBalance] = useState<string>('0');
   const [tokenContract, setTokenContract] = useState<any>(null);
-
+  const [BNBBalance, setBNBBalance] = useState<number | null>(null);
+  const isMobile = useIsMobile();
   const allowedAddresses = [
     '0xdCA1b295fAb25ebCFA1BF3834599Bd8606A64bF6'.toLowerCase(),
     '0x14864Bc81FEed0ec2AA2E1826f82b1801D55C47f'.toLowerCase(),
@@ -56,8 +59,12 @@ const PresaleForm = () => {
       setTokenContract(tokenContractInstance);
     };
 
+    const bnbBalance = formatUnits(balance?.value || 0, 18);
+
+    setBNBBalance(Number(bnbBalance));
+
     setupContract();
-  }, [walletClient]);
+  }, [walletClient, balance]);
 
   const loadPresaleInfo = useCallback(async () => {
     if (!contract) return;
@@ -150,8 +157,8 @@ const PresaleForm = () => {
           🚀 Pré-venda Caramelo 🚀
         </h1>
         <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-          <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="mb-6 xs:flex xs:flex-col">
+            <div className="flex sm:items-center sm:gap-3 mb-2 xs:justify-start">
               <BsCurrencyBitcoin className="text-yellow-400 text-3xl" />
               <span className="text-gray-400 text-lg font-medium">
                 Tokens Disponíveis
@@ -159,14 +166,15 @@ const PresaleForm = () => {
             </div>
             <div className="bg-gray-700 h-4 rounded-lg overflow-hidden mb-2">
               <div
-                className="bg-carameloAccent h-full transition-all duration-300"
+                className="bg-carameloAccent h-full transition-all duration-300 "
                 style={{ width: `${(Number(remaining) / 1000000) * 100}%` }}
               />
             </div>
-            <div className="text-start text-sm text-gray-400">
-              {remaining} Tokens
+            <div className="sm:text-start text-sm text-gray-400 xs:flex xs:justify-center xs:items-center">
+              {remaining} 
             </div>
           </div>
+
           {isConnected &&
             allowedAddresses.includes(address?.toLowerCase() || '') && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
@@ -182,12 +190,12 @@ const PresaleForm = () => {
               </div>
             )}
 
-          <div className="flex flex-col items-start gap-2">
-            <div className="flex items-center gap-3">
-              <img src="/dog.png" alt="Caramelo" className="w-8 h-8" />
-              <span className="text-gray-400 text-lg ">Saldo Caramelo:</span>
-            </div>
-            <span className="font-semibold text-white text-xl pl-11">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-around mb-4 gap-2">
+          <div className="flex items-center gap-3 w-full">
+            <img src="/dog.png" alt="Caramelo" className="w-8 h-8" />
+            <span className="text-gray-400 text-lg sm:w-full">Saldo Caramelo:</span>
+          </div>
+          <span className="font-semibold text-white text-lg sm:text-right sm:w-full sm:flex sm:flex-col sm:items-end">
               {carameloBalance} CARAMELO
             </span>
           </div>
@@ -212,8 +220,19 @@ const PresaleForm = () => {
             className="w-full p-4 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-carameloAccent"
           />
         </div>
+        {!isMobile && <ConnectButton label="Connectar" />}
+        {isMobile && (
+          <div className="flex flex-row justify-around">
+            <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-lg">Saldo BNB:</span>
+              <img src="/bnb.png" alt="BNB" className="w-5 h-5" />
+            </div>
 
-        <ConnectButton label="Connectar" />
+            <span className="font-semibold text-white text-lg">
+              {BNBBalance} BNB
+            </span>
+          </div>
+        )}
 
         <button
           onClick={handleBuy}
