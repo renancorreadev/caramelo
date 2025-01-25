@@ -304,14 +304,14 @@ const PresaleForm = () => {
         </div>
         {!isMobile && <ConnectButton label="Connectar" />}
         {isMobile && (
-          <div className="flex flex-row justify-around">
+          <div className="flex flex-col justify-between">
             <div className="flex items-center gap-2">
               <span className="text-gray-400 text-lg">Saldo BNB:</span>
               <img src="/bnb.png" alt="BNB" className="w-5 h-5" />
             </div>
 
             <span className="font-semibold text-white text-lg">
-              {BNBBalance} BNB
+              {Number(BNBBalance).toFixed(6)} BNB
             </span>
           </div>
         )}
