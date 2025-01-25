@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useEffect, useState } from 'react';
-import { ethers, formatUnits } from 'ethers';
+import { ethers } from 'ethers';
 import { useWalletClient, useAccount, useBalance } from 'wagmi';
 import {
   CarameloPreSale__factory,
@@ -18,7 +18,7 @@ const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || '';
 
 const PresaleForm = () => {
   const { data: walletClient } = useWalletClient();
-  const { data: balance } = useBalance();
+  const { data } = useBalance();
   const { isConnected, address } = useAccount();
 
   const [isMetaMask, setIsMetaMask] = useState<boolean>(false);
@@ -37,16 +37,14 @@ const PresaleForm = () => {
     '0x5C63ccd7eA8f1676F7A8E20C0084De8e7d98E419'.toLowerCase(),
   ];
 
+  
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
         setIsMetaMask(true);
       }
-
+  
       if (!walletClient) return;
-      const bnbBalance = formatUnits(balance?.value || 0, 18);
-      setBNBBalance(Number(bnbBalance));
-
       const setupContract = async () => {
         const provider = new ethers.BrowserProvider(walletClient);
         const signer = await provider.getSigner();
@@ -54,21 +52,25 @@ const PresaleForm = () => {
           CONTRACT_ADDRESS,
           signer
         );
-
+  
         const tokenContractInstance = Caramelo__factory.connect(
           TOKEN_ADDRESS,
           signer
         );
         setContract(contractInstance);
         setTokenContract(tokenContractInstance);
+  
+        const balance = await provider.getBalance(walletClient.account.address);
+        setBNBBalance(parseFloat(ethers.formatUnits(balance, 18)));
       };
-
+  
       setupContract();
     } catch (error) {
       toast.error('Erro ao carregar informações.');
       console.error('Erro ao carregar informações:', error);
     }
-  }, [walletClient, balance]);
+  }, [walletClient, data]);
+  
 
   const loadPresaleInfo = useCallback(async () => {
     if (!contract) return;
@@ -226,6 +228,7 @@ const PresaleForm = () => {
     );
   }
 
+
   return (
     <div
       id="presale-form"
@@ -311,7 +314,7 @@ const PresaleForm = () => {
             </div>
 
             <span className="font-semibold text-white text-lg">
-              {Number(BNBBalance).toFixed(6)} BNB
+              {Number(BNBBalance).toFixed(8)} BNB
             </span>
           </div>
         )}
