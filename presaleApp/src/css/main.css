@@ -1368,7 +1368,7 @@ ol ol {
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 100px 15px 30px 15px;
+  /* padding: 100px 15px 30px 15px; */
 }
 @media (max-width: 576px) {
   .content {
@@ -3758,3 +3758,10 @@ footer {
 }
 /*# sourceMappingURL=main.css.map */
 
+
+@media screen and (min-width: 720px) {
+  [data-testid="rk-wallet-option-com.trustwallet.app"] {
+    display: flex;
+    justify-content: start;
+  }
+}

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import { useWalletClient, useAccount, useBalance } from 'wagmi';
+
+import { ethers, formatUnits } from 'ethers';
+import { useWalletClient, useAccount, useBalance, useAccountEffect  } from 'wagmi';
 import {
   CarameloPreSale__factory,
   Caramelo__factory,
@@ -20,6 +21,7 @@ const PresaleForm = () => {
   const { data: walletClient } = useWalletClient();
   const { data } = useBalance();
   const { isConnected, address } = useAccount();
+  
 
   const [isMetaMask, setIsMetaMask] = useState<boolean>(false);
   const [contract, setContract] = useState<any>(null);
@@ -37,10 +39,22 @@ const PresaleForm = () => {
     '0x5C63ccd7eA8f1676F7A8E20C0084De8e7d98E419'.toLowerCase(),
   ];
 
+  useAccountEffect({
+    onConnect({ address, connector, isReconnected }) {
+      console.log('Conectado', { address, connector, isReconnected });
+      toast.success('Carteira conectada com sucesso!');
+     
+    },
+    onDisconnect() {
+      toast.success('Carteira desconectada com sucesso!');
+      window.location.reload(); 
+    },
+  });
+
   
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
+      if (typeof window !== 'undefined' && (window.ethereum?.isMetaMask || window.ethereum?.trustwallet)) {
         setIsMetaMask(true);
       }
   
@@ -61,7 +75,7 @@ const PresaleForm = () => {
         setTokenContract(tokenContractInstance);
   
         const balance = await provider.getBalance(walletClient.account.address);
-        setBNBBalance(parseFloat(ethers.formatUnits(balance, 18)));
+        setBNBBalance(Number(formatUnits(balance, 18)));
       };
   
       setupContract();
@@ -69,7 +83,7 @@ const PresaleForm = () => {
       toast.error('Erro ao carregar informações.');
       console.error('Erro ao carregar informações:', error);
     }
-  }, [walletClient, data]);
+  }, [walletClient, data, address]);
   
 
   const loadPresaleInfo = useCallback(async () => {
@@ -187,35 +201,71 @@ const PresaleForm = () => {
 
   const handleAddToken = async () => {
     const tokenDetails = {
-      type: 'ERC20',
-      options: {
-        address: TOKEN_ADDRESS,
-        symbol: 'CARAMELO',
-        decimals: 9,
-        image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
-      },
+      address: TOKEN_ADDRESS,
+      symbol: 'CARAMELO',
+      decimals: 9,
+      image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
     };
-
+  
     try {
-      const wasAdded = await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: tokenDetails,
-      });
-
-      if (wasAdded) {
-        alert('Token added to MetaMask!');
+      if (window.ethereum && window.ethereum.isMetaMask) {
+        // MetaMask
+        const wasAdded = await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: {
+            type: 'ERC20',
+            options: tokenDetails,
+          },
+        });
+  
+        if (wasAdded) {
+          toast.success('Token adicionado ao MetaMask!');
+        } else {
+        }
+      } else if (window.ethereum && window.ethereum.isTrust) {
+        // Trust Wallet
+        const wasAdded = await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: {
+            type: 'ERC20',
+            options: tokenDetails,
+          },
+        });
+  
+        if (wasAdded) {
+          toast.success('Token adicionado ao Trust Wallet!');
+        } else {
+          
+        }
       } else {
-        alert('Token addition declined.');
+        toast.error('Carteira não suportada.');
       }
     } catch (error) {
-      console.error('Error adding token:', error);
-      alert('An error occurred. Please try again.');
+      console.error('Erro ao adicionar token:', error);
+      toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
     }
   };
+  
+  
 
   useEffect(() => {
     if (contract) loadPresaleInfo();
   }, [contract, loadPresaleInfo]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      setIsMetaMask(false);
+      setContract(null);
+      setTokenContract(null);
+      setBNBBalance(null);
+      setRemaining('0');
+      setTotalRaised('0');
+      setCarameloBalance('0');
+      setAmount('');
+      toast.success('Carteira desconectada com sucesso!');
+      window.location.reload();
+    }
+  }, [isConnected]);
 
   if (!isConnected) {
     return (
