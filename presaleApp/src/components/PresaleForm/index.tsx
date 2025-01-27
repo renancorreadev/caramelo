@@ -221,17 +221,18 @@ const handleAddToken = async () => {
 
   const handleAddTokenMobile = () => {
     const tokenDetails = {
-      address: TOKEN_ADDRESS,
-      symbol: 'CARAMELO',
-      decimals: 9,
-      image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
+      address: TOKEN_ADDRESS, // Certifique-se de que TOKEN_ADDRESS está correto
+      symbol: 'CARAMELO', // Símbolo do token
+      decimals: 9, // Decimais do token
+      image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png', // URL da imagem do token
     };
-  
-    // Cria o link para adicionar o token na MetaMask mobile
-    const metamaskAppUrl = `https://metamask.app.link/wallet/addToken?address=${tokenDetails.address}&symbol=${tokenDetails.symbol}&decimals=${tokenDetails.decimals}&image=${encodeURIComponent(
-      tokenDetails.image
-    )}`;
-  
+
+    // Codifica a URL da imagem
+    const encodedImageUrl = encodeURIComponent(tokenDetails.image);
+
+    // Gera o link para adicionar o token na MetaMask mobile
+    const metamaskAppUrl = `https://metamask.app.link/wallet/addToken?address=${tokenDetails.address}&symbol=${tokenDetails.symbol}&decimals=${tokenDetails.decimals}&image=${encodedImageUrl}`;
+
     // Abre o link no app da MetaMask
     window.location.href = metamaskAppUrl;
   };
