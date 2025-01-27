@@ -97,7 +97,7 @@ const PresaleForm = () => {
       setTotalRaised(ethers.formatUnits(totalRaisedBNB, 18));
       setCarameloBalance(ethers.formatUnits(carameloTokenBalance, 9));
     } catch (error) {
-      toast.error('Erro ao carregar informações da pré-venda.');
+      await toast.error('Erro ao carregar informações da pré-venda.');
       console.error('Erro ao carregar informações:', error);
     }
   }, [contract, tokenContract, walletClient]);
@@ -125,7 +125,7 @@ const PresaleForm = () => {
         value: ethers.parseEther(amount),
       });
       await tx.wait();
-      toast.dismiss();
+      await toast.dismiss();
       toast.success('Compra realizada com sucesso!');
       loadPresaleInfo();
     } catch (error) {
@@ -134,71 +134,41 @@ const PresaleForm = () => {
     }
   };
 
+  const parseErrorMessage = (errorMsg: string): string => {
+    const errorMessages = {
+      'InsufficientFunds': 'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.',
+      'InvalidPhase': 'A pré-venda não está ativa no momento. Aguarde a fase correta.',
+      'PreSaleNotActive': 'A pré-venda ainda não está ativa. Tente novamente mais tarde.',
+      'NoTokensAvailable': 'Não há tokens suficientes disponíveis para compra. Tente um valor menor.',
+      'InvalidTokenAmount': 'A quantidade de tokens inserida é inválida. Insira um valor válido.',
+      'PreSaleAlreadyInitialized': 'A pré-venda já foi inicializada. Não é possível reiniciá-la.',
+      'ZeroAddress': 'Endereço de destino inválido. Verifique os dados e tente novamente.',
+      'WithdrawalFailed': 'Falha ao tentar sacar os fundos. Entre em contato com o suporte.',
+      'MaxTokensBuyExceeded': 'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.',
+      'InvalidPhaseRate': 'Taxa de fase inválida. Entre em contato com o suporte para mais informações.'
+    };
+
+    for (const [key, message] of Object.entries(errorMessages)) {
+      if (errorMsg.includes(key)) return message;
+    }
+    return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
+  };
+
   const parseContractError = (error: any): string => {
-    console.error('Erro detectado:', error);
-
     if (error?.data?.message) {
-      const errorMsg = error.data.message;
-
-      if (errorMsg.includes('InsufficientFunds')) {
-        return 'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.';
-      }
-
-      if (errorMsg.includes('InvalidPhase')) {
-        return 'A pré-venda não está ativa no momento. Aguarde a fase correta.';
-      }
-
-      if (errorMsg.includes('PreSaleNotActive')) {
-        return 'A pré-venda ainda não está ativa. Tente novamente mais tarde.';
-      }
-
-      if (errorMsg.includes('NoTokensAvailable')) {
-        return 'Não há tokens suficientes disponíveis para compra. Tente um valor menor.';
-      }
-
-      if (errorMsg.includes('InvalidTokenAmount')) {
-        return 'A quantidade de tokens inserida é inválida. Insira um valor válido.';
-      }
-
-      if (errorMsg.includes('PreSaleAlreadyInitialized')) {
-        return 'A pré-venda já foi inicializada. Não é possível reiniciá-la.';
-      }
-
-      if (errorMsg.includes('ZeroAddress')) {
-        return 'Endereço de destino inválido. Verifique os dados e tente novamente.';
-      }
-
-      if (errorMsg.includes('WithdrawalFailed')) {
-        return 'Falha ao tentar sacar os fundos. Entre em contato com o suporte.';
-      }
-
-      if (errorMsg.includes('MaxTokensBuyExceeded')) {
-        return 'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.';
-      }
-
-      if (errorMsg.includes('InvalidPhaseRate')) {
-        return 'Taxa de fase inválida. Entre em contato com o suporte para mais informações.';
-      }
+      return parseErrorMessage(error.data.message);
     }
 
-    // Captura de erro quando não há saldo suficiente para gas/BNB
-    if (
-      error?.code === 'CALL_EXCEPTION' &&
-      error.reason === null &&
-      error.data === null
-    ) {
+    if (error?.code === 'CALL_EXCEPTION' && !error.reason && !error.data) {
       return 'Saldo insuficiente para pagar o gás da transação. Deposite BNB em sua carteira.';
     }
 
-    if (error?.message) {
-      if (error.message.includes('insufficient funds')) {
-        return 'Saldo insuficiente na carteira para completar a transação.';
-      }
+    if (error?.message?.includes('insufficient funds')) {
+      return 'Saldo insuficiente na carteira para completar a transação.';
     }
 
     return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
   };
-
 
   const handleAddToken = async () => {
     const tokenDetails = {
@@ -210,23 +180,17 @@ const PresaleForm = () => {
   
     try {
       if (window.ethereum && (window.ethereum.isMetaMask || window.ethereum.isTrust)) {
-        const wasAdded = await window.ethereum.request({
+        await window.ethereum.request({
           method: 'wallet_watchAsset',
           params: {
             type: 'ERC20',
             options: tokenDetails,
           },
         });
-  
-        if (wasAdded) {
-          toast.success('Token adicionado à carteira com sucesso!');
-        } else {
-      
-        }
       } else {
         toast.error('Carteira não suportada.');
       }
-    } catch (error) {
+    } catch (error){
       console.error('Erro ao adicionar token:', error);
       // @ts-ignore
       if (error?.message?.includes('Trying to add existent asset')) {
@@ -366,14 +330,13 @@ console.log(connector?.name);
         >
           Comprar Tokens
         </button>
-        {(connector?.name === 'MetaMask' || connector?.name === 'Trust Wallet') && (
+     
           <button
             onClick={handleAddToken}
             className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
           >
             Adicionar Token à Carteira
           </button>
-        )}
       </div>
     </div>
   );
