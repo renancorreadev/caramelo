@@ -170,7 +170,56 @@ const PresaleForm = () => {
     return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
   };
 
-  const handleAddToken = async () => {
+  const isMobileRun = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
+
+
+const handleAddToken = async () => {
+  const tokenDetails = {
+    address: TOKEN_ADDRESS,
+    symbol: 'CARAMELO',
+    decimals: 9,
+    image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
+  };
+
+  // Verifica se é mobile
+  if (isMobileRun()) {
+    handleAddTokenMobile();
+    return;
+  }
+
+  // Lógica para desktop (usando window.ethereum)
+  if (!window.ethereum || !window.ethereum.isMetaMask) {
+    toast.error('MetaMask não detectada. Por favor, instale a MetaMask.');
+    return;
+  }
+
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+    const wasAdded = await window.ethereum.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: tokenDetails,
+      },
+    });
+
+    if (wasAdded) {
+      toast.success('Token adicionado à MetaMask com sucesso!');
+    } else {
+      toast.error('Falha ao adicionar o token.');
+    }
+  } catch (error: any) {
+    console.error('Erro ao adicionar token:', error);
+    toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
+  }
+};
+
+  const handleAddTokenMobile = () => {
     const tokenDetails = {
       address: TOKEN_ADDRESS,
       symbol: 'CARAMELO',
@@ -178,33 +227,13 @@ const PresaleForm = () => {
       image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
     };
   
-    // Verifica se o objeto window.ethereum está disponível
-    if (!window.ethereum || !window.ethereum.isMetaMask) {
-      toast.error('MetaMask não detectada. Por favor, instale a MetaMask.');
-      return;
-    }
+    // Cria o link para adicionar o token na MetaMask mobile
+    const metamaskAppUrl = `https://metamask.app.link/wallet/addToken?address=${tokenDetails.address}&symbol=${tokenDetails.symbol}&decimals=${tokenDetails.decimals}&image=${encodeURIComponent(
+      tokenDetails.image
+    )}`;
   
-    try {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-  
-      // Adiciona o token à MetaMask
-      const wasAdded = await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: {
-          type: 'ERC20',
-          options: tokenDetails,
-        },
-      });
-  
-      if (wasAdded) {
-        toast.success('Token adicionado à MetaMask com sucesso!');
-      } else {
-        toast.error('Falha ao adicionar o token.');
-      }
-    } catch (error: any) {
-      console.error('Erro ao adicionar token:', error);
-      toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
-    }
+    // Abre o link no app da MetaMask
+    window.location.href = metamaskAppUrl;
   };
 
   useEffect(() => {
