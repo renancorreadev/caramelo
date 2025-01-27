@@ -178,25 +178,30 @@ const PresaleForm = () => {
       image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
     };
   
+    if (!window.ethereum) {
+      toast.error('MetaMask não detectada. Por favor, instale a MetaMask.');
+      return;
+    }
+  
     try {
-      await window.ethereum.request({
+      const wasAdded = await window.ethereum.request({
         method: 'wallet_watchAsset',
         params: {
           type: 'ERC20',
           options: tokenDetails,
         },
       });
-    } catch (error){
-      console.error('Erro ao adicionar token:', error);
-      // @ts-ignore
-      if (error?.message?.includes('Trying to add existent asset')) {
-        toast.error('O token já está adicionado à sua carteira.');
+  
+      if (wasAdded) {
+        toast.success('Token adicionado à MetaMask com sucesso!');
       } else {
-        toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
+        toast.error('Falha ao adicionar o token.');
       }
+    } catch (error: any) {
+      console.error('Erro ao adicionar token:', error);
+      toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
     }
   };
-  
   
 
   useEffect(() => {
