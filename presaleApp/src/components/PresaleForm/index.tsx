@@ -199,12 +199,6 @@ const PresaleForm = () => {
     return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
   };
 
-  const tokenDetails = {
-    address: TOKEN_ADDRESS,
-    symbol: 'CARAMELO',
-    decimals: 9,
-    image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
-  };
 
   const handleAddToken = async () => {
     const tokenDetails = {
