@@ -178,12 +178,16 @@ const PresaleForm = () => {
       image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
     };
   
-    if (!window.ethereum) {
+    // Verifica se o objeto window.ethereum está disponível
+    if (!window.ethereum || !window.ethereum.isMetaMask) {
       toast.error('MetaMask não detectada. Por favor, instale a MetaMask.');
       return;
     }
   
     try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+  
+      // Adiciona o token à MetaMask
       const wasAdded = await window.ethereum.request({
         method: 'wallet_watchAsset',
         params: {
@@ -202,7 +206,6 @@ const PresaleForm = () => {
       toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
     }
   };
-  
 
   useEffect(() => {
     if (contract) loadPresaleInfo();
