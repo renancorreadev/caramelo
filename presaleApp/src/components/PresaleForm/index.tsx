@@ -179,17 +179,13 @@ const PresaleForm = () => {
     };
   
     try {
-      if (window.ethereum && (window.ethereum.isMetaMask || window.ethereum.isTrust)) {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: {
-            type: 'ERC20',
-            options: tokenDetails,
-          },
-        });
-      } else {
-        toast.error('Carteira não suportada.');
-      }
+      await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: tokenDetails,
+        },
+      });
     } catch (error){
       console.error('Erro ao adicionar token:', error);
       // @ts-ignore
