@@ -1,9 +1,15 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { ethers, formatUnits } from 'ethers';
-import { useWalletClient, useAccount, useBalance, useAccountEffect  } from 'wagmi';
+import {
+  useWalletClient,
+  useAccount,
+  useBalance,
+  useAccountEffect,
+} from 'wagmi';
 import {
   CarameloPreSale__factory,
   Caramelo__factory,
@@ -20,10 +26,8 @@ const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || '';
 const PresaleForm = () => {
   const { data: walletClient } = useWalletClient();
   const { data } = useBalance();
-  const { isConnected, address } = useAccount();
-  
+  const { isConnected, address, connector } = useAccount();
 
-  const [isMetaMask, setIsMetaMask] = useState<boolean>(false);
   const [contract, setContract] = useState<any>(null);
   const [amount, setAmount] = useState<string>('');
   const [remaining, setRemaining] = useState<string>('0');
@@ -43,21 +47,15 @@ const PresaleForm = () => {
     onConnect({ address, connector, isReconnected }) {
       console.log('Conectado', { address, connector, isReconnected });
       toast.success('Carteira conectada com sucesso!');
-     
     },
     onDisconnect() {
       toast.success('Carteira desconectada com sucesso!');
-      window.location.reload(); 
+      window.location.reload();
     },
   });
 
-  
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && (window.ethereum?.isMetaMask || window.ethereum?.trustwallet)) {
-        setIsMetaMask(true);
-      }
-  
       if (!walletClient) return;
       const setupContract = async () => {
         const provider = new ethers.BrowserProvider(walletClient);
@@ -66,25 +64,24 @@ const PresaleForm = () => {
           CONTRACT_ADDRESS,
           signer
         );
-  
+
         const tokenContractInstance = Caramelo__factory.connect(
           TOKEN_ADDRESS,
           signer
         );
         setContract(contractInstance);
         setTokenContract(tokenContractInstance);
-  
+
         const balance = await provider.getBalance(walletClient.account.address);
         setBNBBalance(Number(formatUnits(balance, 18)));
       };
-  
+
       setupContract();
     } catch (error) {
       toast.error('Erro ao carregar informações.');
       console.error('Erro ao carregar informações:', error);
     }
   }, [walletClient, data, address]);
-  
 
   const loadPresaleInfo = useCallback(async () => {
     if (!contract) return;
@@ -139,65 +136,75 @@ const PresaleForm = () => {
 
   const parseContractError = (error: any): string => {
     console.error('Erro detectado:', error);
-  
+
     if (error?.data?.message) {
       const errorMsg = error.data.message;
-  
+
       if (errorMsg.includes('InsufficientFunds')) {
         return 'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.';
       }
-  
+
       if (errorMsg.includes('InvalidPhase')) {
         return 'A pré-venda não está ativa no momento. Aguarde a fase correta.';
       }
-  
+
       if (errorMsg.includes('PreSaleNotActive')) {
         return 'A pré-venda ainda não está ativa. Tente novamente mais tarde.';
       }
-  
+
       if (errorMsg.includes('NoTokensAvailable')) {
         return 'Não há tokens suficientes disponíveis para compra. Tente um valor menor.';
       }
-  
+
       if (errorMsg.includes('InvalidTokenAmount')) {
         return 'A quantidade de tokens inserida é inválida. Insira um valor válido.';
       }
-  
+
       if (errorMsg.includes('PreSaleAlreadyInitialized')) {
         return 'A pré-venda já foi inicializada. Não é possível reiniciá-la.';
       }
-  
+
       if (errorMsg.includes('ZeroAddress')) {
         return 'Endereço de destino inválido. Verifique os dados e tente novamente.';
       }
-  
+
       if (errorMsg.includes('WithdrawalFailed')) {
         return 'Falha ao tentar sacar os fundos. Entre em contato com o suporte.';
       }
-  
+
       if (errorMsg.includes('MaxTokensBuyExceeded')) {
         return 'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.';
       }
-  
+
       if (errorMsg.includes('InvalidPhaseRate')) {
         return 'Taxa de fase inválida. Entre em contato com o suporte para mais informações.';
       }
-    } 
-    
+    }
+
     // Captura de erro quando não há saldo suficiente para gas/BNB
-    if (error?.code === 'CALL_EXCEPTION' && error.reason === null && error.data === null) {
+    if (
+      error?.code === 'CALL_EXCEPTION' &&
+      error.reason === null &&
+      error.data === null
+    ) {
       return 'Saldo insuficiente para pagar o gás da transação. Deposite BNB em sua carteira.';
     }
-  
+
     if (error?.message) {
       if (error.message.includes('insufficient funds')) {
         return 'Saldo insuficiente na carteira para completar a transação.';
       }
     }
-  
+
     return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
   };
-  
+
+  const tokenDetails = {
+    address: TOKEN_ADDRESS,
+    symbol: 'CARAMELO',
+    decimals: 9,
+    image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
+  };
 
   const handleAddToken = async () => {
     const tokenDetails = {
@@ -208,8 +215,7 @@ const PresaleForm = () => {
     };
   
     try {
-      if (window.ethereum && window.ethereum.isMetaMask) {
-        // MetaMask
+      if (window.ethereum && (window.ethereum.isMetaMask || window.ethereum.isTrust)) {
         const wasAdded = await window.ethereum.request({
           method: 'wallet_watchAsset',
           params: {
@@ -219,30 +225,21 @@ const PresaleForm = () => {
         });
   
         if (wasAdded) {
-          toast.success('Token adicionado ao MetaMask!');
+          toast.success('Token adicionado à carteira com sucesso!');
         } else {
-        }
-      } else if (window.ethereum && window.ethereum.isTrust) {
-        // Trust Wallet
-        const wasAdded = await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: {
-            type: 'ERC20',
-            options: tokenDetails,
-          },
-        });
-  
-        if (wasAdded) {
-          toast.success('Token adicionado ao Trust Wallet!');
-        } else {
-          
+      
         }
       } else {
         toast.error('Carteira não suportada.');
       }
     } catch (error) {
       console.error('Erro ao adicionar token:', error);
-      toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
+      // @ts-ignore
+      if (error?.message?.includes('Trying to add existent asset')) {
+        toast.error('O token já está adicionado à sua carteira.');
+      } else {
+        toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
+      }
     }
   };
   
@@ -254,7 +251,6 @@ const PresaleForm = () => {
 
   useEffect(() => {
     if (!isConnected) {
-      setIsMetaMask(false);
       setContract(null);
       setTokenContract(null);
       setBNBBalance(null);
@@ -279,6 +275,7 @@ const PresaleForm = () => {
   }
 
 
+console.log(connector?.name);
   return (
     <div
       id="presale-form"
@@ -375,7 +372,7 @@ const PresaleForm = () => {
         >
           Comprar Tokens
         </button>
-        {isMetaMask && (
+        {(connector?.name === 'MetaMask' || connector?.name === 'Trust Wallet') && (
           <button
             onClick={handleAddToken}
             className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
