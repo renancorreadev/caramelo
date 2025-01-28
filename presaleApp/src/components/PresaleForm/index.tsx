@@ -335,8 +335,9 @@ const PresaleForm = () => {
         </button>
 
         {(connector?.name === 'MetaMask' ||
-          connector?.name === 'Trust Wallet' || 
-          connector?.name === 'Coinbase Wallet') && (
+          connector?.name === 'Trust Wallet' ||
+          connector?.name === 'Coinbase Wallet' ||
+          connector?.id === 'walletConnect') && (
           <button
             onClick={handleAddToken}
             className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
