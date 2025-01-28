@@ -136,16 +136,26 @@ const PresaleForm = () => {
 
   const parseErrorMessage = (errorMsg: string): string => {
     const errorMessages = {
-      'InsufficientFunds': 'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.',
-      'InvalidPhase': 'A pré-venda não está ativa no momento. Aguarde a fase correta.',
-      'PreSaleNotActive': 'A pré-venda ainda não está ativa. Tente novamente mais tarde.',
-      'NoTokensAvailable': 'Não há tokens suficientes disponíveis para compra. Tente um valor menor.',
-      'InvalidTokenAmount': 'A quantidade de tokens inserida é inválida. Insira um valor válido.',
-      'PreSaleAlreadyInitialized': 'A pré-venda já foi inicializada. Não é possível reiniciá-la.',
-      'ZeroAddress': 'Endereço de destino inválido. Verifique os dados e tente novamente.',
-      'WithdrawalFailed': 'Falha ao tentar sacar os fundos. Entre em contato com o suporte.',
-      'MaxTokensBuyExceeded': 'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.',
-      'InvalidPhaseRate': 'Taxa de fase inválida. Entre em contato com o suporte para mais informações.'
+      InsufficientFunds:
+        'Saldo insuficiente para compra. Verifique seu saldo e tente novamente.',
+      InvalidPhase:
+        'A pré-venda não está ativa no momento. Aguarde a fase correta.',
+      PreSaleNotActive:
+        'A pré-venda ainda não está ativa. Tente novamente mais tarde.',
+      NoTokensAvailable:
+        'Não há tokens suficientes disponíveis para compra. Tente um valor menor.',
+      InvalidTokenAmount:
+        'A quantidade de tokens inserida é inválida. Insira um valor válido.',
+      PreSaleAlreadyInitialized:
+        'A pré-venda já foi inicializada. Não é possível reiniciá-la.',
+      ZeroAddress:
+        'Endereço de destino inválido. Verifique os dados e tente novamente.',
+      WithdrawalFailed:
+        'Falha ao tentar sacar os fundos. Entre em contato com o suporte.',
+      MaxTokensBuyExceeded:
+        'Você excedeu o limite máximo de tokens permitidos. Tente um valor menor.',
+      InvalidPhaseRate:
+        'Taxa de fase inválida. Entre em contato com o suporte para mais informações.',
     };
 
     for (const [key, message] of Object.entries(errorMessages)) {
@@ -168,73 +178,6 @@ const PresaleForm = () => {
     }
 
     return 'Erro desconhecido. Por favor, tente novamente mais tarde.';
-  };
-
-  const isMobileRun = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-};
-
-
-const handleAddToken = async () => {
-  const tokenDetails = {
-    address: TOKEN_ADDRESS,
-    symbol: 'CARAMELO',
-    decimals: 9,
-    image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
-  };
-
-  // Verifica se é mobile
-  if (isMobileRun()) {
-    handleAddTokenMobile();
-    return;
-  }
-
-  // Lógica para desktop (usando window.ethereum)
-  if (!window.ethereum || !window.ethereum.isMetaMask) {
-    toast.error('MetaMask não detectada. Por favor, instale a MetaMask.');
-    return;
-  }
-
-  try {
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    const wasAdded = await window.ethereum.request({
-      method: 'wallet_watchAsset',
-      params: {
-        type: 'ERC20',
-        options: tokenDetails,
-      },
-    });
-
-    if (wasAdded) {
-      toast.success('Token adicionado à MetaMask com sucesso!');
-    } else {
-      toast.error('Falha ao adicionar o token.');
-    }
-  } catch (error: any) {
-    console.error('Erro ao adicionar token:', error);
-    toast.error('Ocorreu um erro ao adicionar o token. Por favor, tente novamente.');
-  }
-};
-
-  const handleAddTokenMobile = () => {
-    const tokenDetails = {
-      address: TOKEN_ADDRESS, // Certifique-se de que TOKEN_ADDRESS está correto
-      symbol: 'CARAMELO', // Símbolo do token
-      decimals: 9, // Decimais do token
-      image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png', // URL da imagem do token
-    };
-
-    // Codifica a URL da imagem
-    const encodedImageUrl = encodeURIComponent(tokenDetails.image);
-
-    // Gera o link para adicionar o token na MetaMask mobile
-    const metamaskAppUrl = `https://metamask.app.link/wallet/addToken?address=${tokenDetails.address}&symbol=${tokenDetails.symbol}&decimals=${tokenDetails.decimals}&image=${encodedImageUrl}`;
-
-    // Abre o link no app da MetaMask
-    window.location.href = metamaskAppUrl;
   };
 
   useEffect(() => {
@@ -266,8 +209,34 @@ const handleAddToken = async () => {
     );
   }
 
+  const handleAddToken = async () => {
+    const tokenDetails = {
+      type: 'ERC20',
+      options: {
+        address: TOKEN_ADDRESS,
+        symbol: 'CARAMELO',
+        decimals: 9,
+        image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
+      },
+    };
 
-console.log(connector?.name);
+    try {
+      const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: tokenDetails,
+      });
+
+      if (wasAdded) {
+        alert('Token added to MetaMask!');
+      } else {
+        alert('Token addition declined.');
+      }
+    } catch (error) {
+      console.error('Error adding token:', error);
+      alert('An error occurred. Please try again.');
+    }
+  };
+
   return (
     <div
       id="presale-form"
@@ -364,13 +333,17 @@ console.log(connector?.name);
         >
           Comprar Tokens
         </button>
-     
+
+        {(connector?.name === 'MetaMask' ||
+          connector?.name === 'Trust Wallet' || 
+          connector?.name === 'Coinbase Wallet') && (
           <button
             onClick={handleAddToken}
             className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
           >
             Adicionar Token à Carteira
           </button>
+        )}
       </div>
     </div>
   );
