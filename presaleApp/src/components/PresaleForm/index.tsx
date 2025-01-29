@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useEffect, useState } from 'react';
-
 import { ethers, formatUnits } from 'ethers';
 import {
   useWalletClient,
   useAccount,
   useBalance,
   useAccountEffect,
+  useWatchAsset,
 } from 'wagmi';
 import {
   CarameloPreSale__factory,
@@ -18,6 +18,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { BsCurrencyBitcoin } from 'react-icons/bs';
 import { useIsMobile } from '@/hooks/useMobile';
 import toast from 'react-hot-toast';
+import TutorialModal from './Modal';
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || '';
@@ -25,8 +26,10 @@ const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CARAMELO_CONTRACT || '';
 
 const PresaleForm = () => {
   const { data: walletClient } = useWalletClient();
+  const { watchAsset, isError, isSuccess } = useWatchAsset();
   const { data } = useBalance();
-  const { isConnected, address, connector } = useAccount();
+  const { isConnected, address } = useAccount();
+  const [isModalOpen, setModalOpen] = useState(false);
 
   const [contract, setContract] = useState<any>(null);
   const [amount, setAmount] = useState<string>('');
@@ -210,30 +213,24 @@ const PresaleForm = () => {
   }
 
   const handleAddToken = async () => {
-    const tokenDetails = {
-      type: 'ERC20',
-      options: {
-        address: TOKEN_ADDRESS,
-        symbol: 'CARAMELO',
-        decimals: 9,
-        image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
-      },
-    };
-
-    try {
-      const wasAdded = await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: tokenDetails,
-      });
-
-      if (wasAdded) {
-        alert('Token added to MetaMask!');
-      } else {
-        alert('Token addition declined.');
+    if (isMobile) {
+      setModalOpen(true);
+    } else {
+      try {
+        await watchAsset({
+          type: 'ERC20',
+          options: {
+            address: TOKEN_ADDRESS,
+            symbol: 'CARAMELO',
+            decimals: 9,
+            image: 'https://i.postimg.cc/wB37FMbj/caramelo-Token.png',
+          },
+        });
+        toast.success('Token adicionado à carteira com sucesso!');
+      } catch (error) {
+        console.error('Erro ao adicionar token:', error);
+        toast.error('Erro ao adicionar o token. Verifique sua carteira.');
       }
-    } catch (error) {
-      console.error('Error adding token:', error);
-      alert('An error occurred. Please try again.');
     }
   };
 
@@ -334,16 +331,25 @@ const PresaleForm = () => {
           Comprar Tokens
         </button>
 
-        {(connector?.name === 'MetaMask' ||
-          connector?.name === 'Trust Wallet' ||
-          connector?.name === 'Coinbase Wallet' ||
-          connector?.id === 'walletConnect') && (
-          <button
-            onClick={handleAddToken}
-            className="w-full bg-gray-700 text-carameloAccent font-bold py-4 rounded-lg shadow-lg hover:bg-gray-600 hover:text-yellow-400 transition-all duration-300"
-          >
-            Adicionar Token à Carteira
-          </button>
+        <button
+          onClick={handleAddToken}
+          className="w-full bg-carameloAccent text-white font-bold py-4 rounded-lg shadow-lg hover:bg-yellow-500 hover:text-gray-900 transition-all duration-300"
+        >
+          Adicionar Token à Carteira
+        </button>
+        {isMobile && (
+          <TutorialModal
+            isOpen={isModalOpen}
+            onClose={() => setModalOpen(false)}
+          />
+        )}
+        {isError && (
+          <p className="text-red-500">
+            Erro ao adicionar o token. Verifique sua carteira.
+          </p>
+        )}
+        {isSuccess && (
+          <p className="text-green-500">Token adicionado com sucesso!</p>
         )}
       </div>
     </div>

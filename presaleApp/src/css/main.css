@@ -3765,3 +3765,19 @@ footer {
     justify-content: start;
   }
 }
+
+#tutorial-metamask {
+    font-family: 'Comic Neue', cursive;
+}
+
+#tutorial-trust {
+  font-family: 'Comic Neue', cursive;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+}
