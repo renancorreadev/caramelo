@@ -3657,8 +3657,16 @@ button[data-testid="rk-wallet-option-walletConnect"] {
 }
 
 button[data-testid="rk-connect-button"] {
+  background-color: rgb(255 193 7) !important;
+  color: #000 !important;
+}
+
+button[data-testid="rk-connect-button"]:hover {
   background-color: #fff !important;
   color: #000 !important;
+  border: 1px solid #000 !important;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 
@@ -3780,4 +3788,24 @@ footer {
 
 .scrollbar-hide {
   scrollbar-width: none;
+}
+
+#how-to-buy {
+  height: 40px;
+  background-color: rgb(255 193 7);
+  color: #000;
+  padding: .6rem 1rem;
+  border-radius: 12px;
+  font-weight: bold;
+  font-family: 'SF Pro Rounded', sans-serif;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  width: 100%;
+}
+
+@media screen and (max-width: 576px) {
+  #how-to-buy {
+    padding: .7rem 1.3rem;
+  }
 }

@@ -1,7 +1,11 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useIsMobile } from '../../../hooks/useMobile';
 
 /* eslint-disable @next/next/no-img-element */
 export const Hero = () => {
+  const isMobile = useIsMobile();
+
+
   return (
     <div
       id="video-container"
@@ -46,6 +50,7 @@ export const Hero = () => {
           alignItems: 'center',
           justifyContent: 'center',
         }}
+    
       >
         <a
           href="#"
@@ -60,6 +65,7 @@ export const Hero = () => {
           <img
             style={{
               marginTop: '0rem !important',
+              width: isMobile ? '308px' : '100%',
             }}
             className="dogelogo lg:max-w-[450px]"
             src="/images/caramelo.svg"
@@ -81,7 +87,22 @@ export const Hero = () => {
         >
           a MEMECOIN do Brasil
         </p>
-        <ConnectButton />
+
+        <div className="sm:flex sm:gap-6 xs:flex-col xs:gap-6 xs:space-y-4 sm:items-center">
+          <div className="xs:w-full xs:text-center">
+            <ConnectButton />
+          </div>
+
+          <div className="xs:w-full xs:text-center xs:pb-4">
+            <a
+              href="https://www.youtube.com/watch?v=KOr2ttjv1jU"
+              id="how-to-buy"
+              className="hover:!bg-slate-100 hover:!text-gray-900 transition-all duration-300 xs:w-full xs:text-center"
+            >
+              Como comprar?
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
