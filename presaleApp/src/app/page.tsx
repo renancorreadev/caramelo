@@ -37,8 +37,8 @@ export default function Home() {
 
           {/* Seção de vídeo responsiva */}
           <div className="flex flex-col items-center sm:mt-8 xs:mt-4 sm:gap-6 xs:gap-4 text-center">
-            <h2 className="text-white font-bold text-2xl">Como comprar?</h2>
-            <p className="text-gray-200 max-w-[600px]">
+            <h2 className="text-white font-bold text-2xl comic-neue">Como comprar?</h2>
+            <p className="text-gray-200 max-w-[600px] comic-neue">
               Assista ao vídeo abaixo para entender como comprar os tokens da pré-venda do Caramelo.
             </p>
 
