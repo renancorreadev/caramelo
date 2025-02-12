@@ -3,6 +3,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { trackEvent } from '@/utils/bpixel';
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -115,7 +116,7 @@ export const Header: React.FC = () => {
                 </a>
               </li>
 
-              <li id="connect-button" className="tooltip" role="tooltip opacity1" > 
+              <li id="connect-button" className="tooltip" role="tooltip opacity1"  onClick={() => trackEvent("Connect Wallet")}> 
                 <ConnectButton label="Conectar" />
               </li>
             </ul>

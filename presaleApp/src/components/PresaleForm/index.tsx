@@ -19,6 +19,9 @@ import { BsCurrencyBitcoin } from 'react-icons/bs';
 import { useIsMobile } from '@/hooks/useMobile';
 import toast from 'react-hot-toast';
 import TutorialModal from './Modal';
+import { trackEvent } from "@/utils/bpixel";
+
+
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CARAMELO_PRESALE_CONTRACT || '';
@@ -106,6 +109,8 @@ const PresaleForm = () => {
   }, [contract, tokenContract, walletClient]);
 
   const handleBuy = async () => {
+    trackEvent("Purchase");
+
     if (!contract) {
       toast.error('Conecte sua carteira antes de comprar.');
       return;
@@ -213,6 +218,8 @@ const PresaleForm = () => {
   }
 
   const handleAddToken = async () => {
+    trackEvent("Add Token", { method: "handleAddToken" }); 
+
     if (isMobile) {
       setModalOpen(true);
     } else {
@@ -314,7 +321,7 @@ const PresaleForm = () => {
             className="w-full p-4 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-carameloAccent"
           />
         </div>
-        {!isMobile && <ConnectButton label="Connectar" />}
+        {!isMobile && <div id="connect-wallet" onClick={() => trackEvent("Connect Wallet")}> <ConnectButton label="Connectar" /> </div>}
         {isMobile && (
           <div className="flex flex-col justify-between">
             <div className="flex items-center gap-2">
@@ -329,6 +336,7 @@ const PresaleForm = () => {
         )}
 
         <button
+          id="buy-tokens"
           onClick={handleBuy}
           className="w-full bg-carameloAccent text-white font-bold py-4 rounded-lg shadow-lg hover:bg-yellow-500 hover:text-gray-900 transition-all duration-300"
         >
@@ -336,6 +344,7 @@ const PresaleForm = () => {
         </button>
 
         <button
+          id="add-token"
           onClick={handleAddToken}
           className="w-full bg-carameloAccent text-white font-bold py-4 rounded-lg shadow-lg hover:bg-yellow-500 hover:text-gray-900 transition-all duration-300"
         >

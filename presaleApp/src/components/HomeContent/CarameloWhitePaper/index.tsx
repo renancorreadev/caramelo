@@ -1,10 +1,14 @@
 'use client';
 
 import React from 'react';
+import { trackEvent } from "@/utils/bpixel";
+
 
 const CarameloPresalePage = () => {
   const handleRedirect = () => {
     window.location.href = 'https://caramelocoin.com';
+    trackEvent("Read", { method: "Read White Paper" }); 
+ 
   };
 
   return (
@@ -117,6 +121,7 @@ const CarameloPresalePage = () => {
             era nas criptomoedas. Invista na Caramelo Coin agora mesmo!
           </p>
           <button
+            id="leia-mais" 
             onClick={handleRedirect}
             className="bg-yellow-400 text-gray-900 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-yellow-500 transition-all duration-300"
           >

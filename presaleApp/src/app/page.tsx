@@ -6,7 +6,10 @@ import { Container } from '@/components/Container';
 import PresaleForm from '@/components/PresaleForm';
 import { useAccount } from 'wagmi';
 import { Hero } from '@/components/HomeContent';
+import { usePathname } from 'next/navigation';
+import { initFacebookPixel } from '@/utils/bpixel';
 
+const FACEBOOK_PIXEL_ID = '552697117164331';
 // Desativando SSR para os componentes propensos a problemas
 const DynamicPageContent = dynamic(
   () => import('@/components/HomeContent').then((mod) => mod.PageContent),
@@ -20,10 +23,17 @@ const DynamicWhitePaper = dynamic(
 export default function Home() {
   const { isConnected } = useAccount();
   const [isClient, setIsClient] = useState(false);
+  const pathname = usePathname();
+
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    initFacebookPixel(FACEBOOK_PIXEL_ID);
+  }, [pathname]);
+
 
   if (!isClient) {
     return <div className="loading-spinner">Carregando...</div>;

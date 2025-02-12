@@ -31,14 +31,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  
   return (
     <html lang="pt-BR" className={comicNeue.variable}>
-      <body className={`antialiased`}>
+      <head>
+        {/* Facebook Pixel */}
         <Script src="/js/bootstrap.bundle.min.js" strategy="afterInteractive" />
         <Script src="/js/jquery.min.js" strategy="afterInteractive" />
-       
+      </head>
+      <body className={`antialiased`}>
+        {/* Scripts adicionais */}
         <Providers>
-        <Toaster position="top-right" reverseOrder={false} />
+          <Toaster position="top-right" reverseOrder={false} />
           <div
             style={{
               display: 'flex',
