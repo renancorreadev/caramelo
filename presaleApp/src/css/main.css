@@ -3813,3 +3813,8 @@ footer {
 [data-testid="rk-wallet-option-com.coinbase.wallet"] {
   display: none;
 }
+
+[data-testid="rk-wallet-option-metaMask"] {
+  display: flex;
+  justify-content: flex-start;
+}

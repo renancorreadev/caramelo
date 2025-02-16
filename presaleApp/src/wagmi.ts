@@ -68,7 +68,7 @@ export const config = getDefaultConfig({
     [bsc.id]: http(),
   },
   wallets: [{
-    groupName: 'Custom',
+    groupName: 'Recommended',
     wallets: [
       rainbowWallet,
       rainbowWeb3AuthConnector,
