@@ -3809,3 +3809,7 @@ footer {
     padding: .7rem 1.3rem;
   }
 }
+
+[data-testid="rk-wallet-option-com.coinbase.wallet"] {
+  display: none;
+}

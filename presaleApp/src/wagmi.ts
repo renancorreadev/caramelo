@@ -1,5 +1,5 @@
 import { bsc } from "wagmi/chains";
-import { rainbowWallet, metaMaskWallet, coinbaseWallet, trustWallet, injectedWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
+import { rainbowWallet, metaMaskWallet, trustWallet, injectedWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { rainbowWeb3AuthConnector } from "./RaimbowWeb3AuthConnector";
 import { http } from "wagmi";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
@@ -18,14 +18,14 @@ function walletconnect() {
               universal: "https://metamask.io"
             }
           },
-          {
-            id: "coinbaseWallet",
-            name: "Coinbase Wallet",
-            links: {
-              native: "coinbase://",
-              universal: "https://wallet.coinbase.com"
-            }
-          }
+          // {
+          //   id: "coinbaseWallet",
+          //   name: "Coinbase Wallet",
+          //   links: {
+          //     native: "coinbase://",
+          //     universal: "https://wallet.coinbase.com"
+          //   }
+          // }
         ],
         mobileWallets: [
           {
@@ -68,15 +68,16 @@ export const config = getDefaultConfig({
     [bsc.id]: http(),
   },
   wallets: [{
-    groupName: 'Recommended',
+    groupName: 'Custom',
     wallets: [
       rainbowWallet,
       rainbowWeb3AuthConnector,
       metaMaskWallet,
-      coinbaseWallet,
+      // coinbaseWallet,
       trustWallet,
       injectedWallet,
-      walletconnect
+      walletconnect,
+      // phantomWallet
     ],
   }],
 });
